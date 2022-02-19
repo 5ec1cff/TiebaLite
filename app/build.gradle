@@ -4,8 +4,6 @@ plugins {
     id "kotlin-kapt"
 }
 
-def keystoreProperties = new Properties()
-keystoreProperties.load(new FileInputStream(rootProject.file("keystore.properties")))
 def applicationProperties = new Properties()
 applicationProperties.load(new FileInputStream(rootProject.file("application.properties")))
 def buildId = System.getenv("APPCENTER_BUILD_ID")
@@ -37,13 +35,18 @@ android {
     }
     signingConfigs {
         release {
-            keyAlias keystoreProperties["releaseKeyAlias"]
-            keyPassword keystoreProperties["releaseKeyPassword"]
-            storeFile file(rootDir.getCanonicalPath() + "/" + keystoreProperties["releaseKeyStore"])
-            storePassword keystoreProperties["releaseStorePassword"]
-            v2SigningEnabled true
-            enableV3Signing true
-            enableV4Signing true
+            def keystoreFile = rootProject.file("keystore.properties")
+            if (keystoreFile.exists()) {
+                def keystoreProperties = new Properties()
+                keystoreProperties.load(new FileInputStream(keystoreFile))
+                keyAlias keystoreProperties["releaseKeyAlias"]
+                keyPassword keystoreProperties["releaseKeyPassword"]
+                storeFile file(rootDir.getCanonicalPath() + "/" + keystoreProperties["releaseKeyStore"])
+                storePassword keystoreProperties["releaseStorePassword"]
+                v2SigningEnabled true
+                enableV3Signing true
+                enableV4Signing true
+            }
         }
     }
     buildTypes {

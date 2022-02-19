@@ -9,6 +9,7 @@ import android.graphics.drawable.Drawable
 import android.graphics.drawable.GradientDrawable
 import android.graphics.drawable.RippleDrawable
 import android.net.Uri
+import android.util.Log
 import android.view.View
 import androidx.browser.customtabs.CustomTabColorSchemeParams
 import androidx.browser.customtabs.CustomTabsIntent
@@ -132,8 +133,27 @@ fun getIntermixedColorBackground(
     )
 }
 
+// handle tieba check jump url properly
+fun parseTiebaUrl(url: String): Uri? {
+    var uri = Uri.parse(url)
+    val host = uri.host
+    val path = uri.path
+    val scheme = uri.scheme
+    if (host == null || scheme == null || path == null) {
+        return null
+    }
+    if (host.contains("tieba.baidu.com") && path == "/mo/q/checkurl") {
+        val realUrl = uri.getQueryParameter("url")
+        if (realUrl != null) {
+            uri = Uri.parse(realUrl)
+            Log.d("url-debug", "resolved real url=$realUrl")
+        }
+    }
+    return uri
+}
+
 fun launchUrl(context: Context, url: String) {
-    val uri = Uri.parse(url)
+    val uri = parseTiebaUrl(url) ?: return
     val host = uri.host
     val path = uri.path
     val scheme = uri.scheme

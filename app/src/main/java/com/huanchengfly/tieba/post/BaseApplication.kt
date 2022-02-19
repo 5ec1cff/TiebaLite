@@ -16,6 +16,7 @@ import android.net.Uri
 import android.os.Build
 import android.os.Bundle
 import android.os.Process
+import android.util.Log
 import android.view.View
 import android.webkit.WebView
 import android.widget.FrameLayout
@@ -88,6 +89,7 @@ class BaseApplication : Application(), IApp {
         ThemeUtils.init(ThemeDelegate)
         AppCompatDelegate.setDefaultNightMode(AppCompatDelegate.MODE_NIGHT_FOLLOW_SYSTEM)
         LitePal.initialize(this)
+        /*
         registerActivityLifecycleCallbacks(object : ActivityLifecycleCallbacks {
             private var clipBoardHash: Int = 0
             private fun updateClipBoardHashCode() {
@@ -99,8 +101,10 @@ class BaseApplication : Application(), IApp {
                 val data = cm.primaryClip
                 if (data != null) {
                     val item = data.getItemAt(0)
+                    Log.d("clipboard-debug", item.toString())
                     return item.hashCode()
                 }
+                Log.d("clipboard-debug", "no primaryClip")
                 return 0
             }
 
@@ -215,7 +219,7 @@ class BaseApplication : Application(), IApp {
             override fun onActivityStopped(activity: Activity) {}
             override fun onActivitySaveInstanceState(activity: Activity, outState: Bundle) {}
             override fun onActivityDestroyed(activity: Activity) {}
-        })
+        })*/
         if (BuildConfig.DEBUG) CrashUtil.CrashHandler.getInstance().init(this)
         PluginManager.init(this)
     }
