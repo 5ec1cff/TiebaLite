@@ -2,11 +2,13 @@ package com.huanchengfly.tieba.post.activities
 
 import android.graphics.Color
 import android.os.Bundle
+import android.util.Log
 import android.view.ViewGroup
 import android.view.inputmethod.EditorInfo
 import android.widget.EditText
 import androidx.recyclerview.widget.RecyclerView
 import butterknife.BindView
+import cn.dreamtobe.kpswitch.util.KeyboardUtil
 import com.google.android.material.textfield.TextInputLayout
 import com.huanchengfly.tieba.post.R
 import com.huanchengfly.tieba.post.adapters.SearchPostAdapter
@@ -63,6 +65,11 @@ class SearchPostActivity : BaseActivity() {
         if (keyword != null) {
             editText.setText(keyword)
         }
+        editText.post {
+            if (keyword == null) {
+                KeyboardUtil.showKeyboard(editText)
+            }
+        }
     }
 
     private fun initView() {
@@ -83,6 +90,7 @@ class SearchPostActivity : BaseActivity() {
         searchBar.setStartIconOnClickListener { finish() }
         editText.setOnEditorActionListener { v, actionId, _ ->
             if (actionId == EditorInfo.IME_ACTION_SEARCH) {
+                KeyboardUtil.hideKeyboard(editText)
                 keyword = v.text.toString()
                 return@setOnEditorActionListener true
             }
