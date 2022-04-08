@@ -17,6 +17,7 @@ import com.google.android.material.snackbar.Snackbar
 import com.huanchengfly.tieba.post.BaseApplication
 import com.huanchengfly.tieba.post.R
 import com.huanchengfly.tieba.post.activities.WebViewActivity
+import com.huanchengfly.tieba.post.api.models.ThreadContentBean
 import com.huanchengfly.tieba.post.api.retrofit.exception.TiebaException
 import com.huanchengfly.tieba.post.dpToPxFloat
 import com.huanchengfly.tieba.post.ui.theme.utils.ColorStateListUtils
@@ -133,8 +134,24 @@ fun getIntermixedColorBackground(
     )
 }
 
+fun contentBeansToSimpleString(contentBeans: List<ThreadContentBean.ContentBean>): String {
+    var result = ""
+    for (contentBean in contentBeans) {
+        val text = when (contentBean.type) {
+            "1" -> "${parseTiebaUrl(contentBean.link)}"
+            "2" -> "#(${contentBean.c})"
+            "3", "20" -> "[图片]\n"
+            "10" -> "[语音]\n"
+            else -> contentBean.text ?: ""
+        }
+        result += text
+    }
+    return result
+}
+
 // handle tieba check jump url properly
-fun parseTiebaUrl(url: String): Uri? {
+fun parseTiebaUrl(url: String?): Uri? {
+    if (url == null) return Uri.EMPTY
     var uri = Uri.parse(url)
     val host = uri.host
     val path = uri.path
@@ -146,7 +163,6 @@ fun parseTiebaUrl(url: String): Uri? {
         val realUrl = uri.getQueryParameter("url")
         if (realUrl != null) {
             uri = Uri.parse(realUrl)
-            Log.d("url-debug", "resolved real url=$realUrl")
         }
     }
     return uri

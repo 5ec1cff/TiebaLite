@@ -39,6 +39,7 @@ import com.huanchengfly.tieba.post.ui.theme.utils.ThemeUtils
 import com.huanchengfly.tieba.post.utils.*
 import com.huanchengfly.tieba.post.utils.BilibiliUtil.replaceVideoNumberSpan
 import com.huanchengfly.tieba.post.utils.DateTimeUtils.getRelativeTimeString
+import com.huanchengfly.tieba.post.utils.TiebaUtil.copyText
 import com.huanchengfly.tieba.post.utils.TiebaUtil.reportPost
 import com.huanchengfly.tieba.post.widgets.MyLinearLayout
 import com.huanchengfly.tieba.post.widgets.VoicePlayerView
@@ -270,18 +271,8 @@ class ThreadReplyAdapter(context: Context) : BaseSingleTypeDelegateAdapter<PostL
                             return@setOnNavigationItemSelectedListener true
                         }
                         R.id.menu_copy -> {
-                            val stringBuilder = StringBuilder()
-                            for (contentBean in subPostListItemBean.content!!) {
-                                when (contentBean.type) {
-                                    "2" -> contentBean.setText("#(" + contentBean.c + ")")
-                                    "3", "20" -> contentBean.setText("[图片]\n")
-                                    "10" -> contentBean.setText("[语音]\n")
-                                }
-                                if (contentBean.text != null) {
-                                    stringBuilder.append(contentBean.text)
-                                }
-                            }
-                            Util.showCopyDialog(context as BaseActivity, stringBuilder.toString(), subPostListItemBean.id)
+                            // Util.showCopyDialog(context as BaseActivity, stringBuilder.toString(), subPostListItemBean.id)
+                            copyText(context as BaseActivity, contentBeansToSimpleString(subPostListItemBean.content!!))
                             return@setOnNavigationItemSelectedListener true
                         }
                         R.id.menu_delete -> {
@@ -354,18 +345,8 @@ class ThreadReplyAdapter(context: Context) : BaseSingleTypeDelegateAdapter<PostL
                             return@setOnNavigationItemSelectedListener true
                         }
                         R.id.menu_copy -> {
-                            val stringBuilder = StringBuilder()
-                            for (contentBean in postListItemBean.content!!) {
-                                when (contentBean.type) {
-                                    "2" -> contentBean.setText("#(" + contentBean.c + ")")
-                                    "3", "20" -> contentBean.setText("[图片]\n")
-                                    "10" -> contentBean.setText("[语音]\n")
-                                }
-                                if (contentBean.text != null) {
-                                    stringBuilder.append(contentBean.text)
-                                }
-                            }
-                            Util.showCopyDialog(context as BaseActivity, stringBuilder.toString(), postListItemBean.id)
+                            copyText(context as BaseActivity, contentBeansToSimpleString(postListItemBean.content!!))
+                            // Util.showCopyDialog(context as BaseActivity, stringBuilder.toString(), postListItemBean.id)
                             return@setOnNavigationItemSelectedListener true
                         }
                         R.id.menu_delete -> {

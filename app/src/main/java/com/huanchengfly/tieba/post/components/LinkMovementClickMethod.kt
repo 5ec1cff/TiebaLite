@@ -18,8 +18,8 @@ object LinkMovementClickMethod : LinkMovementMethod() {
     }
 
     override fun onTouchEvent(widget: TextView, buffer: Spannable, event: MotionEvent): Boolean {
-
         val action = event.actionMasked
+        if (action == MotionEvent.ACTION_UP && event.eventTime - event.downTime > CLICK_DELAY) return false
         if (action == MotionEvent.ACTION_UP || action == MotionEvent.ACTION_DOWN) {
             var x = event.x.toInt()
             var y = event.y.toInt()
@@ -32,7 +32,7 @@ object LinkMovementClickMethod : LinkMovementMethod() {
             val off = layout.getOffsetForHorizontal(line, x.toFloat())
             val link = buffer.getSpans(off, off, ClickableSpan::class.java)
             if (link.isNotEmpty()) {
-                if (action == MotionEvent.ACTION_UP && event.eventTime - event.downTime <= CLICK_DELAY) {
+                if (action == MotionEvent.ACTION_UP) {
                     link[0].onClick(widget)
                 } else {
                     Selection.setSelection(buffer, buffer.getSpanStart(link[0]),

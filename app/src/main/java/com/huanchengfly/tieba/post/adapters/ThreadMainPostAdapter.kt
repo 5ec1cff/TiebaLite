@@ -110,22 +110,13 @@ class ThreadMainPostAdapter(
                             true
                         }
                         R.id.menu_copy -> {
-                            val stringBuilder = StringBuilder()
-                            for (contentBean in threadPostBean!!.content!!) {
-                                when (contentBean.type) {
-                                    "2" -> contentBean.setText("#(" + contentBean.c + ")")
-                                    "3", "20" -> contentBean.setText("[图片]\n")
-                                    "10" -> contentBean.setText("[语音]\n")
-                                }
-                                if (contentBean.text != null) {
-                                    stringBuilder.append(contentBean.text)
-                                }
-                            }
+                            TiebaUtil.copyText(context as BaseActivity, contentBeansToSimpleString(threadPostBean!!.content!!))
+                            /*
                             Util.showCopyDialog(
                                 context as BaseActivity?,
                                 stringBuilder.toString(),
                                 threadPostBean!!.id
-                            )
+                            )*/
                             true
                         }
                         else -> PluginManager.performPluginMenuClick(
