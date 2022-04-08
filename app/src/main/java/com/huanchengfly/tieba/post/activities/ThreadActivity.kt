@@ -651,6 +651,7 @@ class ThreadActivity : BaseActivity(), View.OnClickListener, IThreadMenuFragment
     }
 
     private fun exit(): Boolean {
+        /*
         if (collect) {
             DialogUtil.build(this)
                 .setMessage(R.string.message_update_store_floor)
@@ -675,7 +676,7 @@ class ThreadActivity : BaseActivity(), View.OnClickListener, IThreadMenuFragment
                 .create()
                 .show()
             return false
-        }
+        }*/
         return true
     }
 
