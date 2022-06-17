@@ -138,7 +138,14 @@ fun contentBeansToSimpleString(contentBeans: List<ThreadContentBean.ContentBean>
     var result = ""
     for (contentBean in contentBeans) {
         val text = when (contentBean.type) {
-            "1" -> "${parseTiebaUrl(contentBean.link)}"
+            "1" -> {
+                val realUrl = parseTiebaUrl(contentBean.link)?.toString()
+                if (contentBean.text?.let { realUrl?.startsWith(it) } == true) {
+                    realUrl
+                } else {
+                    "[${contentBean.text}](${realUrl ?: contentBean.link})"
+                }
+            }
             "2" -> "#(${contentBean.c})"
             "3", "20" -> "[图片]\n"
             "10" -> "[语音]\n"
