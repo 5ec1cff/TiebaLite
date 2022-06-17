@@ -1,7 +1,6 @@
 package com.huanchengfly.tieba.post.api.retrofit
 
 import android.os.Build
-import android.webkit.WebSettings
 import com.huanchengfly.tieba.post.BaseApplication
 import com.huanchengfly.tieba.post.api.Header
 import com.huanchengfly.tieba.post.api.Param
@@ -66,8 +65,9 @@ object RetrofitTiebaApi {
     val WEB_TIEBA_API: WebTiebaApi by lazy {
         createAPI<WebTiebaApi>("https://tieba.baidu.com/",
             CommonHeaderInterceptor(
+                Header.ACCEPT_LANGUAGE to { Header.ACCEPT_LANGUAGE_VALUE },
                 Header.HOST to { "tieba.baidu.com" },
-                Header.USER_AGENT to { WebSettings.getDefaultUserAgent(BaseApplication.instance) }
+                Header.USER_AGENT to { "Mozilla/5.0 (Linux; Android 6.0; Nexus 5 Build/MRA58N) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/103.0.5060.0 Mobile Safari/537.36 Edg/103.0.1264.2" }
             ),
             AddCookieInterceptor)
     }
@@ -95,7 +95,7 @@ object RetrofitTiebaApi {
         createAPI<OfficialTiebaApi>("http://c.tieba.baidu.com/",
             defaultCommonHeaderInterceptor,
             CommonHeaderInterceptor(
-                Header.USER_AGENT to { "bdtb for Android 9.9.8.32" },
+                Header.USER_AGENT to { "bdtb for Android 12.25.1.0" },
                 Header.CUID to { UIDUtil.getNewCUID() },
                 Header.CUID_GALAXY2 to { UIDUtil.getFinalCUID() },
                 Header.CUID_GID to { "" }
@@ -107,7 +107,7 @@ object RetrofitTiebaApi {
                 Param.CUID_GALAXY2 to { UIDUtil.getFinalCUID() },
                 Param.CUID_GID to { "" },
                 Param.FROM to { "tieba" },
-                Param.CLIENT_VERSION to { "9.9.8.32" }
+                Param.CLIENT_VERSION to { "12.25.1.0" }
             ))
     }
 

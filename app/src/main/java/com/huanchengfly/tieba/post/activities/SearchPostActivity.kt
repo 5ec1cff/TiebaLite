@@ -2,7 +2,6 @@ package com.huanchengfly.tieba.post.activities
 
 import android.graphics.Color
 import android.os.Bundle
-import android.util.Log
 import android.view.ViewGroup
 import android.view.inputmethod.EditorInfo
 import android.widget.EditText

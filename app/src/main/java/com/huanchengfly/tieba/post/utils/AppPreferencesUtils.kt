@@ -18,9 +18,8 @@ open class AppPreferencesUtils(context: Context) {
         key = "auto_sign_time"
     )
 
-    var checkBetaUpdate by SharedPreferenceDelegates.boolean(
-        defaultValue = false,
-        key = "check_beta_update"
+    var checkCIUpdate by SharedPreferenceDelegates.boolean(
+        defaultValue = false
     )
 
     var collectThreadSeeLz by SharedPreferenceDelegates.boolean(
@@ -58,7 +57,7 @@ open class AppPreferencesUtils(context: Context) {
 
     var hideExplore by SharedPreferenceDelegates.boolean(defaultValue = false)
 
-    var hideHotMessageList by SharedPreferenceDelegates.boolean(defaultValue = false)
+    var hideForumIntroAndStat by SharedPreferenceDelegates.boolean(defaultValue = false)
 
     var homePageScroll by SharedPreferenceDelegates.boolean(defaultValue = false)
 
@@ -81,6 +80,8 @@ open class AppPreferencesUtils(context: Context) {
         defaultValue = true,
         key = "oksign_slow_mode"
     )
+
+    var postOrReplyWarning by SharedPreferenceDelegates.boolean(defaultValue = true)
 
     var radius by SharedPreferenceDelegates.int(defaultValue = 8)
 

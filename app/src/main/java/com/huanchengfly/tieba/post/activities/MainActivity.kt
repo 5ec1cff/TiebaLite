@@ -15,22 +15,21 @@ import android.widget.TextView
 import android.widget.Toast
 import androidx.viewpager.widget.ViewPager.OnPageChangeListener
 import butterknife.BindView
-import com.google.android.material.bottomnavigation.BottomNavigationItemView
-import com.google.android.material.bottomnavigation.BottomNavigationMenuView
-import com.google.android.material.bottomnavigation.BottomNavigationView
-import com.google.android.material.bottomnavigation.BottomNavigationView.OnNavigationItemReselectedListener
+import com.google.android.material.navigation.NavigationBarItemView
+import com.google.android.material.navigation.NavigationBarMenuView
+import com.google.android.material.navigation.NavigationBarView
 import com.google.android.material.snackbar.Snackbar
-import com.huanchengfly.tieba.post.*
+import com.huanchengfly.tieba.post.BaseApplication
+import com.huanchengfly.tieba.post.R
 import com.huanchengfly.tieba.post.adapters.ViewPagerAdapter
 import com.huanchengfly.tieba.post.api.Error
-import com.huanchengfly.tieba.post.api.LiteApi
 import com.huanchengfly.tieba.post.api.interfaces.CommonCallback
-import com.huanchengfly.tieba.post.api.retrofit.doIfFailure
-import com.huanchengfly.tieba.post.api.retrofit.doIfSuccess
+import com.huanchengfly.tieba.post.dpToPxFloat
 import com.huanchengfly.tieba.post.fragments.MainForumListFragment
 import com.huanchengfly.tieba.post.fragments.MessageFragment
 import com.huanchengfly.tieba.post.fragments.MyInfoFragment
 import com.huanchengfly.tieba.post.fragments.PersonalizedFeedFragment
+import com.huanchengfly.tieba.post.goToActivity
 import com.huanchengfly.tieba.post.interfaces.Refreshable
 import com.huanchengfly.tieba.post.models.MyInfoBean
 import com.huanchengfly.tieba.post.services.NotifyJobService
@@ -38,20 +37,19 @@ import com.huanchengfly.tieba.post.utils.*
 import com.huanchengfly.tieba.post.widgets.MyViewPager
 import com.microsoft.appcenter.crashes.Crashes
 import com.microsoft.appcenter.distribute.Distribute
-import kotlinx.coroutines.Dispatchers.IO
-import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
 import java.util.*
 
-open class MainActivity : BaseActivity(), BottomNavigationView.OnNavigationItemSelectedListener, OnNavigationItemReselectedListener {
+open class MainActivity : BaseActivity(), NavigationBarView.OnItemSelectedListener,
+    NavigationBarView.OnItemReselectedListener {
     var mAdapter: ViewPagerAdapter = ViewPagerAdapter(supportFragmentManager)
 
     @BindView(R.id.mViewPager)
     lateinit var mViewPager: MyViewPager
 
     @BindView(R.id.navbar)
-    lateinit var mBottomNavigationView: BottomNavigationView
-    private var menuView: BottomNavigationMenuView? = null
+    lateinit var navigationView: NavigationBarView
+    private var menuView: NavigationBarMenuView? = null
 
     private var lastTime: Long = 0
     private val navigationHelper: NavigationHelper = NavigationHelper.newInstance(this)
@@ -68,7 +66,7 @@ open class MainActivity : BaseActivity(), BottomNavigationView.OnNavigationItemS
     public override fun onResume() {
         super.onResume()
         ThemeUtil.setTranslucentThemeBackground(findViewById(R.id.background))
-        mBottomNavigationView.elevation = if (ThemeUtil.isTranslucentTheme(this)) {
+        navigationView.elevation = if (ThemeUtil.isTranslucentTheme(this)) {
             0f
         } else {
             4f.dpToPxFloat()
@@ -106,16 +104,17 @@ open class MainActivity : BaseActivity(), BottomNavigationView.OnNavigationItemS
         return false
     }
 
+    @SuppressLint("RestrictedApi")
     private fun findView() {
-        menuView = mBottomNavigationView.getChildAt(0) as BottomNavigationMenuView
+        menuView = navigationView.menuView as NavigationBarMenuView
     }
 
     protected fun initView() {
-        val hideExploreItemView = menuView!!.getChildAt(msgNavPosition) as BottomNavigationItemView
+        val hideExploreItemView = menuView!!.getChildAt(msgNavPosition) as NavigationBarItemView
         val badge = layoutInflater.inflate(R.layout.layout_badge, hideExploreItemView, true)
         badgeTextView = badge.findViewById(R.id.tv_msg_count)
         if (hideExplore) {
-            mBottomNavigationView.menu.removeItem(R.id.navbar_explore)
+            navigationView.menu.removeItem(R.id.navbar_explore)
         }
         mAdapter.addFragment(MainForumListFragment())
         if (!hideExplore) {
@@ -129,15 +128,20 @@ open class MainActivity : BaseActivity(), BottomNavigationView.OnNavigationItemS
         mViewPager.offscreenPageLimit = mAdapter.count
     }
 
-    protected fun initListener() {
-        mBottomNavigationView.setOnNavigationItemSelectedListener(this)
-        mBottomNavigationView.setOnNavigationItemReselectedListener(this)
+    private fun initListener() {
+        navigationView.setOnItemSelectedListener(this)
+        navigationView.setOnItemReselectedListener(this)
         mViewPager.addOnPageChangeListener(object : OnPageChangeListener {
-            override fun onPageScrolled(position: Int, positionOffset: Float, positionOffsetPixels: Int) {}
+            override fun onPageScrolled(
+                position: Int,
+                positionOffset: Float,
+                positionOffsetPixels: Int
+            ) {
+            }
 
             @SuppressLint("RestrictedApi")
             override fun onPageSelected(position: Int) {
-                mBottomNavigationView.menu.getItem(position).isChecked = true
+                navigationView.menu.getItem(position).isChecked = true
                 if (position == msgNavPosition) {
                     badgeTextView!!.visibility = View.GONE
                 }
@@ -175,16 +179,9 @@ open class MainActivity : BaseActivity(), BottomNavigationView.OnNavigationItemS
                     showDialog {
                         setTitle(R.string.title_dialog_crash)
                         setMessage(R.string.message_dialog_crash)
-                        setPositiveButton(R.string.button_copy_crash_link) { _, _ ->
-                            launch(IO + job) {
-                                LiteApi.instance.pastebinAsync(
-                                    "崩溃报告 ${
-                                        formatDateTime(
-                                            "yyyy-MM-dd HH:mm:ss",
-                                            it.appErrorTime.time
-                                        )
-                                    }",
-                                    """
+                        setPositiveButton(R.string.button_copy_crash) { _, _ ->
+                            TiebaUtil.copyText(
+                                this@MainActivity, """
                                         App 版本：${device.appVersion}
                                         系统版本：${device.osVersion}
                                         机型：${device.oemName} ${device.model}
@@ -192,13 +189,9 @@ open class MainActivity : BaseActivity(), BottomNavigationView.OnNavigationItemS
                                         崩溃：
                                         ${it.stackTrace}
                                     """.trimIndent()
-                                ).doIfSuccess {
-                                    TiebaUtil.copyText(this@MainActivity, it)
-                                }.doIfFailure {
-                                    toastShort(R.string.toast_get_link_failed)
-                                }
-                            }
+                            )
                         }
+                        setNegativeButton(R.string.button_cancel, null)
                     }
                 }
             }
@@ -260,26 +253,6 @@ open class MainActivity : BaseActivity(), BottomNavigationView.OnNavigationItemS
         } else if (!AccountUtil.isLoggedIn(this)) {
             navigationHelper.navigationByData(NavigationHelper.ACTION_LOGIN)
         }
-        /*
-        handler.postDelayed(() -> {
-            try {
-                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-                    String relativePath = Environment.DIRECTORY_PICTURES + File.separator + "Tieba Lite" + File.separator + "shareTemp";
-                    String where = MediaStore.Images.Media.RELATIVE_PATH + " like \"" + relativePath + "%" + "\"";
-                    int i = getContentResolver().deleteAll(MediaStore.Images.Media.EXTERNAL_CONTENT_URI, where, null);
-                } else {
-                    if (AndPermission.hasPermissions(this, Permission.Group.STORAGE)) {
-                        File shareTemp = new File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_PICTURES).getAbsoluteFile(), "Tieba Lite" + File.separator + "shareTemp");
-                        if (shareTemp.exists() && shareTemp.deleteAll()) {
-                            FileUtil.deleteAllFiles(shareTemp);
-                        }
-                    }
-                }
-            } catch (Exception e) {
-                e.printStackTrace();
-            }
-        }, 100);
-        */
     }
 
     override fun recreate() {

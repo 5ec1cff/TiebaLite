@@ -24,6 +24,7 @@
     <uses-permission android:name="com.android.launcher.permission.UNINSTALL_SHORTCUT" />
     <uses-permission android:name="com.android.launcher.permission.READ_SETTINGS" />
     <uses-permission android:name="com.miui.personalassistant.permission.FAVORITE" />
+    <uses-permission android:name="android.permission.REQUEST_IGNORE_BATTERY_OPTIMIZATIONS" />
 
     <supports-screens
         android:anyDensity="true"
@@ -31,6 +32,14 @@
         android:normalScreens="true"
         android:resizeable="true"
         android:smallScreens="true" />
+
+    <queries>
+        <intent>
+            <data
+                android:host="unidispatch"
+                android:scheme="com.baidu.tieba" />
+        </intent>
+    </queries>
 
     <application
         android:name=".BaseApplication"
@@ -43,6 +52,7 @@
         android:supportsRtl="true"
         android:theme="@style/AppTheme"
         android:usesCleartextTraffic="true"
+        android:dataExtractionRules="@xml/data_extraction_rules"
         tools:ignore="UnusedAttribute">
         <activity
             android:name=".activities.AppFontSizeActivity"
@@ -90,12 +100,16 @@
         <meta-data
             android:name="use_miui_font"
             android:value="true" />
+        <meta-data
+            android:name="ScopedStorage"
+            android:value="true" />
 
         <activity
             android:name=".activities.MainActivity"
             android:configChanges="screenSize|screenLayout|orientation|smallestScreenSize|keyboardHidden"
             android:resizeableActivity="true"
             android:theme="@style/AppTheme.Splash"
+            android:exported="true"
             android:windowSoftInputMode="adjustResize">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
@@ -151,7 +165,9 @@
             android:name=".activities.AboutActivity"
             android:configChanges="screenSize|screenLayout|orientation|smallestScreenSize|keyboardHidden"
             android:windowSoftInputMode="adjustResize" />
-        <activity android:name=".activities.DispatchActivity">
+        <activity
+            android:name=".activities.DispatchActivity"
+            android:exported="true">
             <intent-filter>
                 <data
                     android:host="tieba.baidu.com"
@@ -193,6 +209,7 @@
             android:windowSoftInputMode="adjustPan" />
 
         <service
+            android:exported="true"
             android:name=".services.OKSignTileService"
             android:icon="@drawable/ic_oksign"
             android:label="@string/title_oksign"
@@ -276,6 +293,16 @@
             <meta-data
                 android:name="android.support.FILE_PROVIDER_PATHS"
                 android:resource="@xml/file_paths_share_img" />
+        </provider>
+
+        <provider
+            android:name="androidx.startup.InitializationProvider"
+            android:authorities="com.huanchengfly.tieba.post.androidx-startup"
+            android:exported="false"
+            tools:node="merge">
+            <meta-data
+                android:name="com.huanchengfly.tieba.post.components.WindowInitializer"
+                android:value="androidx.startup" />
         </provider>
     </application>
 

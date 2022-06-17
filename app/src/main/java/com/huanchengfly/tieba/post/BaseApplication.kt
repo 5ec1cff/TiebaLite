@@ -4,7 +4,6 @@ import android.app.Activity
 import android.app.ActivityManager
 import android.app.Application
 import android.app.Dialog
-import android.content.ClipboardManager
 import android.content.Context
 import android.content.Intent
 import android.content.res.ColorStateList
@@ -42,10 +41,7 @@ import com.huanchengfly.tieba.post.utils.QuickPreviewUtil.isThreadUrl
 import com.microsoft.appcenter.AppCenter
 import com.microsoft.appcenter.analytics.Analytics
 import com.microsoft.appcenter.crashes.Crashes
-import com.microsoft.appcenter.distribute.Distribute
-import com.microsoft.appcenter.distribute.DistributeListener
-import com.microsoft.appcenter.distribute.ReleaseDetails
-import com.microsoft.appcenter.distribute.UpdateAction
+import com.microsoft.appcenter.distribute.*
 import org.intellij.lang.annotations.RegExp
 import org.litepal.LitePal
 import java.util.*
@@ -81,6 +77,7 @@ class BaseApplication : Application(), IApp {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
             setWebViewPath(this)
         }
+        Distribute.setUpdateTrack(if (appPreferences.checkCIUpdate) UpdateTrack.PRIVATE else UpdateTrack.PUBLIC)
         Distribute.setListener(MyDistributeListener())
         AppCenter.start(
             this, "b56debcc-264b-4368-a2cd-8c20213f6433",
@@ -89,34 +86,21 @@ class BaseApplication : Application(), IApp {
         ThemeUtils.init(ThemeDelegate)
         AppCompatDelegate.setDefaultNightMode(AppCompatDelegate.MODE_NIGHT_FOLLOW_SYSTEM)
         LitePal.initialize(this)
-        /*
         registerActivityLifecycleCallbacks(object : ActivityLifecycleCallbacks {
-            private var clipBoardHash: Int = 0
+            private var clipBoardHash: String? = null
             private fun updateClipBoardHashCode() {
                 clipBoardHash = getClipBoardHash()
             }
 
-            private fun getClipBoardHash(): Int {
-                val cm = getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
-                val data = cm.primaryClip
-                if (data != null) {
-                    val item = data.getItemAt(0)
-                    Log.d("clipboard-debug", item.toString())
-                    return item.hashCode()
-                }
-                Log.d("clipboard-debug", "no primaryClip")
-                return 0
+            private fun getClipBoardHash(): String? {
+                return "$clipBoard $clipBoardTimestamp"
             }
 
-            private val clipBoard: String
-                get() {
-                    val cm = getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
-                    val data = cm.primaryClip ?: return ""
-                    val item = data.getItemAt(0)
-                    return if (item == null || item.text == null) {
-                        ""
-                    } else item.text.toString()
-                }
+            private val clipBoard: String?
+                get() = getClipBoardText()
+
+            private val clipBoardTimestamp: Long
+                get() = getClipBoardTimestamp()
 
             private fun isTiebaDomain(host: String?): Boolean {
                 return host != null && (host.equals("wapp.baidu.com", ignoreCase = true) ||
@@ -142,7 +126,7 @@ class BaseApplication : Application(), IApp {
                         iconView.setImageResource(data.icon!!.res)
                         val iconLayoutParams = iconView.layoutParams as FrameLayout.LayoutParams
                         run {
-                            iconLayoutParams.height = 24f.pxToDp()
+                            iconLayoutParams.height = 24f.dpToPx()
                             iconLayoutParams.width = iconLayoutParams.height
                         }
                         iconView.layoutParams = iconLayoutParams
@@ -152,7 +136,7 @@ class BaseApplication : Application(), IApp {
                         ImageUtil.load(iconView, ImageUtil.LOAD_TYPE_AVATAR, data.icon!!.url)
                         val avatarLayoutParams = iconView.layoutParams as FrameLayout.LayoutParams
                         run {
-                            avatarLayoutParams.height = 40f.pxToDp()
+                            avatarLayoutParams.height = 24f.dpToPx()
                             avatarLayoutParams.width = avatarLayoutParams.height
                         }
                         iconView.layoutParams = avatarLayoutParams
@@ -162,11 +146,20 @@ class BaseApplication : Application(), IApp {
             }
 
             override fun onActivityResumed(activity: Activity) {
-                if (clipBoardHash != getClipBoardHash()) {
+                activity.window.decorView.post { checkClipBoard(activity) }
+            }
+
+            private fun checkClipBoard(activity: Activity) {
+                val clipBoardText = clipBoard
+                Log.i(
+                    TAG,
+                    "checkClipBoard: ${activity.clipBoardManager.hasPrimaryClip()} $clipBoardText $clipBoardHash ${getClipBoardHash()}"
+                )
+                if (clipBoardHash != getClipBoardHash() && clipBoardText != null) {
                     @RegExp val regex =
                         "((http|https)://)(([a-zA-Z0-9._-]+\\.[a-zA-Z]{2,6})|([0-9]{1,3}\\.[0-9]{1,3}\\.[0-9]{1,3}\\.[0-9]{1,3}))(:[0-9]{1,4})*(/[a-zA-Z0-9&%_./-~-]*)?"
                     val pattern = Pattern.compile(regex)
-                    val matcher = pattern.matcher(clipBoard)
+                    val matcher = pattern.matcher(clipBoardText)
                     if (matcher.find()) {
                         val url = matcher.group()
                         val uri = Uri.parse(url)
@@ -180,11 +173,13 @@ class BaseApplication : Application(), IApp {
                                         .setSubtitle(activity.getString(R.string.text_loading))
                                         .setUrl(url))
                             } else if (isThreadUrl(uri)) {
-                                updatePreviewView(activity, previewView, PreviewInfo()
+                                updatePreviewView(
+                                    activity, previewView, PreviewInfo()
                                         .setIconRes(R.drawable.ic_round_mode_comment)
                                         .setTitle(url)
                                         .setSubtitle(activity.getString(R.string.text_loading))
-                                        .setUrl(url))
+                                        .setUrl(url)
+                                )
                             }
                             getPreviewInfo(activity, url, object : CommonCallback<PreviewInfo> {
                                 override fun onSuccess(data: PreviewInfo) {
@@ -192,23 +187,27 @@ class BaseApplication : Application(), IApp {
                                 }
 
                                 override fun onFailure(code: Int, error: String) {
-                                    updatePreviewView(activity, previewView, PreviewInfo()
+                                    updatePreviewView(
+                                        activity, previewView, PreviewInfo()
                                             .setUrl(url)
                                             .setTitle(url)
                                             .setSubtitle(activity.getString(R.string.subtitle_link))
-                                            .setIconRes(R.drawable.ic_link))
+                                            .setIconRes(R.drawable.ic_link)
+                                    )
                                 }
                             })
                             DialogUtil.build(activity)
-                                    .setTitle(R.string.title_dialog_clip_board_tieba_url)
-                                    .setPositiveButton(R.string.button_yes) { _, _ ->
-                                        startActivity(Intent("com.huanchengfly.tieba.post.ACTION_JUMP", uri)
-                                                .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-                                                .addCategory(Intent.CATEGORY_DEFAULT))
-                                    }
-                                    .setView(previewView)
-                                    .setNegativeButton(R.string.button_no, null)
-                                    .show()
+                                .setTitle(R.string.title_dialog_clip_board_tieba_url)
+                                .setPositiveButton(R.string.button_yes) { _, _ ->
+                                    startActivity(
+                                        Intent("com.huanchengfly.tieba.post.ACTION_JUMP", uri)
+                                            .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                                            .addCategory(Intent.CATEGORY_DEFAULT)
+                                    )
+                                }
+                                .setView(previewView)
+                                .setNegativeButton(R.string.button_no, null)
+                                .show()
                         }
                     }
                 }
@@ -219,7 +218,7 @@ class BaseApplication : Application(), IApp {
             override fun onActivityStopped(activity: Activity) {}
             override fun onActivitySaveInstanceState(activity: Activity, outState: Bundle) {}
             override fun onActivityDestroyed(activity: Activity) {}
-        })*/
+        })
         if (BuildConfig.DEBUG) CrashUtil.CrashHandler.getInstance().init(this)
         PluginManager.init(this)
     }

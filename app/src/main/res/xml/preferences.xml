@@ -109,8 +109,15 @@
         <SwitchPreference
             android:defaultValue="false"
             android:icon="@drawable/ic_round_whatshot"
-            android:key="hideHotMessageList"
-            android:title="@string/title_hide_hot_message_list" />
+            android:key="hideForumIntroAndStat"
+            android:summary="@string/summary_hide_forum_intro_and_stat"
+            android:title="@string/title_hide_forum_intro_and_stat" />
+
+        <SwitchPreference
+            android:defaultValue="true"
+            android:icon="@drawable/ic_round_warning"
+            android:key="postOrReplyWarning"
+            android:title="@string/title_post_or_reply_warning" />
 
         <ListPreference
             android:defaultValue="post"
@@ -221,6 +228,12 @@
             android:icon="@drawable/ic_round_watch_later_purple"
             android:key="auto_sign_time"
             android:title="@string/title_auto_sign_time" />
+
+        <Preference
+            android:icon="@drawable/ic_round_battery_alert"
+            android:key="ignore_battery_optimization"
+            android:summary="@string/summary_ignore_battery_optimization"
+            android:title="@string/title_ignore_battery_optimization" />
 
         <Preference
             android:layout="@layout/layout_preference_dense"

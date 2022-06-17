@@ -1,8 +1,12 @@
 package com.huanchengfly.tieba.post.activities
 
 import android.annotation.SuppressLint
+import android.content.ActivityNotFoundException
 import android.content.Intent
+import android.content.Intent.ACTION_VIEW
+import android.content.pm.PackageManager
 import android.graphics.Color
+import android.net.Uri
 import android.os.Bundle
 import android.text.Editable
 import android.text.TextUtils
@@ -16,6 +20,7 @@ import android.widget.FrameLayout
 import android.widget.GridView
 import android.widget.RelativeLayout
 import android.widget.Toast
+import androidx.activity.result.ActivityResultLauncher
 import androidx.appcompat.widget.Toolbar
 import androidx.recyclerview.widget.ItemTouchHelper
 import androidx.recyclerview.widget.LinearLayoutManager
@@ -41,15 +46,15 @@ import com.huanchengfly.tieba.post.interfaces.UploadCallback
 import com.huanchengfly.tieba.post.models.PhotoInfoBean
 import com.huanchengfly.tieba.post.models.ReplyInfoBean
 import com.huanchengfly.tieba.post.models.database.Draft
+import com.huanchengfly.tieba.post.toastShort
 import com.huanchengfly.tieba.post.utils.*
 import com.huanchengfly.tieba.post.widgets.edittext.widget.UndoableEditText
 import com.huanchengfly.tieba.post.widgets.theme.TintConstraintLayout
 import com.huanchengfly.tieba.post.widgets.theme.TintImageView
-import com.zhihu.matisse.Matisse
 import org.litepal.LitePal.where
-import java.util.*
 
-class ReplyActivity : BaseActivity(), View.OnClickListener {
+class ReplyActivity : BaseActivity(), View.OnClickListener,
+    InsertPhotoAdapter.MatisseLauncherProvider {
     @BindView(R.id.activity_reply_edit_text)
     lateinit var editText: UndoableEditText
 
@@ -81,13 +86,26 @@ class ReplyActivity : BaseActivity(), View.OnClickListener {
     lateinit var toolbar: Toolbar
     private var replyInfoBean: ReplyInfoBean? = null
     private var loadingDialog: LoadingDialog? = null
-    private var insertPhotoAdapter: InsertPhotoAdapter? = null
+    private val insertPhotoAdapter: InsertPhotoAdapter by lazy {
+        InsertPhotoAdapter(this)
+    }
     private var sendItem: MenuItem? = null
     private var replySuccess = false
     private var content: String? = null
     private var mWebView: WebView? = null
     override val isNeedImmersionBar: Boolean
         get() = false
+
+    @JvmField
+    val matisseLauncher = registerForActivityResult(InsertPhotoAdapter.MatisseResultContract()) {
+        val photoInfoBeans = insertPhotoAdapter.getFileList().toMutableList()
+        for (uri in it) {
+            photoInfoBeans.add(PhotoInfoBean(this, uri))
+        }
+        insertPhotoAdapter.setFileList(photoInfoBeans)
+    }
+
+    override fun getMatisseLauncher(): ActivityResultLauncher<Intent> = matisseLauncher
 
     override fun getLayoutId(): Int {
         return R.layout.activity_reply
@@ -107,6 +125,41 @@ class ReplyActivity : BaseActivity(), View.OnClickListener {
         window.setBackgroundDrawableResource(R.drawable.bg_trans)
         initData()
         initView()
+        if (appPreferences.postOrReplyWarning) showDialog {
+            setTitle(R.string.title_dialog_reply_warning)
+            setMessage(R.string.message_dialog_reply_warning)
+            setNegativeButton(R.string.btn_cancel_reply) { _, _ ->
+                finish()
+            }
+            setNeutralButton(R.string.btn_continue_reply, null)
+            setPositiveButton(R.string.button_official_client_reply) { _, _ ->
+                val intent = Intent(ACTION_VIEW).setData(getDispatchUri())
+                val resolveInfos =
+                    packageManager.queryIntentActivities(intent, PackageManager.MATCH_DEFAULT_ONLY)
+                        .filter { it.resolvePackageName != packageName }
+                try {
+                    if (resolveInfos.isNotEmpty()) {
+                        startActivity(intent)
+                    } else {
+                        toastShort(R.string.toast_official_client_not_install)
+                    }
+                } catch (e: ActivityNotFoundException) {
+                    toastShort(R.string.toast_official_client_not_install)
+                }
+                finish()
+            }
+        }
+    }
+
+    private fun getDispatchUri(): Uri? {
+        if (replyInfoBean == null) {
+            return null
+        }
+        return if (replyInfoBean!!.pid != null) {
+            Uri.parse("com.baidu.tieba://unidispatch/pb?obj_locate=comment_lzl_cut_guide&obj_source=wise&obj_name=index&obj_param2=chrome&has_token=0&qd=scheme&refer=tieba.baidu.com&wise_sample_id=3000232_2&hightlight_anchor_pid=${replyInfoBean!!.pid}&is_anchor_to_comment=1&comment_sort_type=0&fr=bpush&tid=${replyInfoBean!!.threadId}")
+        } else {
+            Uri.parse("com.baidu.tieba://unidispatch/pb?obj_locate=pb_reply&obj_source=wise&obj_name=index&obj_param2=chrome&has_token=0&qd=scheme&refer=tieba.baidu.com&wise_sample_id=3000232_2-99999_9&fr=bpush&tid=${replyInfoBean!!.threadId}")
+        }
     }
 
     private fun destroyWebView() {
@@ -183,11 +236,11 @@ class ReplyActivity : BaseActivity(), View.OnClickListener {
             ): Int {
                 var dragFlags = 0
                 var swiped = 0
-                if (viewHolder.adapterPosition < insertPhotoAdapter!!.itemCount - 1) {
+                if (viewHolder.adapterPosition < insertPhotoAdapter.itemCount - 1) {
                     swiped = ItemTouchHelper.UP or ItemTouchHelper.DOWN
-                    if (viewHolder.adapterPosition < insertPhotoAdapter!!.itemCount - 2 && viewHolder.adapterPosition > 0) {
+                    if (viewHolder.adapterPosition < insertPhotoAdapter.itemCount - 2 && viewHolder.adapterPosition > 0) {
                         dragFlags = ItemTouchHelper.RIGHT or ItemTouchHelper.LEFT
-                    } else if (viewHolder.adapterPosition == insertPhotoAdapter!!.itemCount - 2) {
+                    } else if (viewHolder.adapterPosition == insertPhotoAdapter.itemCount - 2) {
                         dragFlags = ItemTouchHelper.LEFT
                     } else if (viewHolder.adapterPosition == 0) {
                         dragFlags = ItemTouchHelper.RIGHT
@@ -203,17 +256,17 @@ class ReplyActivity : BaseActivity(), View.OnClickListener {
             ): Boolean {
                 val oldPosition = viewHolder.adapterPosition
                 val newPosition = target.adapterPosition
-                if (newPosition < insertPhotoAdapter!!.itemCount - 1) {
+                if (newPosition < insertPhotoAdapter.itemCount - 1) {
                     if (oldPosition < newPosition) {
                         for (i in oldPosition until newPosition) {
-                            insertPhotoAdapter!!.swap(i, i + 1)
+                            insertPhotoAdapter.swap(i, i + 1)
                         }
                     } else {
                         for (i in oldPosition downTo newPosition + 1) {
-                            insertPhotoAdapter!!.swap(i, i - 1)
+                            insertPhotoAdapter.swap(i, i - 1)
                         }
                     }
-                    insertPhotoAdapter!!.notifyItemMoved(oldPosition, newPosition)
+                    insertPhotoAdapter.notifyItemMoved(oldPosition, newPosition)
                     return true
                 }
                 return false
@@ -221,7 +274,7 @@ class ReplyActivity : BaseActivity(), View.OnClickListener {
 
             override fun onSwiped(viewHolder: RecyclerView.ViewHolder, direction: Int) {
                 val position = viewHolder.adapterPosition
-                insertPhotoAdapter!!.remove(position)
+                insertPhotoAdapter.remove(position)
             }
         })
         mItemTouchHelper.attachToRecyclerView(insertView)
@@ -233,7 +286,6 @@ class ReplyActivity : BaseActivity(), View.OnClickListener {
         } else {
             insertImageBtn.visibility = View.INVISIBLE
         }
-        insertPhotoAdapter = InsertPhotoAdapter(this)
         insertView.adapter = insertPhotoAdapter
         val layoutManager = LinearLayoutManager(this)
         layoutManager.orientation = RecyclerView.HORIZONTAL
@@ -281,7 +333,7 @@ class ReplyActivity : BaseActivity(), View.OnClickListener {
 
     private fun canSend(): Boolean {
         return editText.text.toString().isNotEmpty() ||
-                insertPhotoAdapter!!.fileList.size > 0
+                insertPhotoAdapter.getFileList().isNotEmpty()
     }
 
     private fun needUpload(): Boolean {
@@ -289,7 +341,7 @@ class ReplyActivity : BaseActivity(), View.OnClickListener {
         if (replyInfoBean!!.isSubFloor) {
             return false
         }
-        for (photoInfoBean in insertPhotoAdapter!!.fileList) {
+        for (photoInfoBean in insertPhotoAdapter.getFileList()) {
             if (photoInfoBean.webUploadPicBean == null) {
                 needUpload = true
                 break
@@ -318,12 +370,13 @@ class ReplyActivity : BaseActivity(), View.OnClickListener {
         val builder = StringBuilder()
         if (hasPhoto()) {
             if (!needUpload()) {
-                for (photoInfoBean in insertPhotoAdapter!!.fileList) {
+                for (photoInfoBean in insertPhotoAdapter.getFileList()) {
                     if (photoInfoBean.webUploadPicBean != null) {
                         builder.append(photoInfoBean.webUploadPicBean.imageInfo)
-                        if (insertPhotoAdapter!!.fileList.size - 1 > insertPhotoAdapter!!.fileList.indexOf(
-                                photoInfoBean
-                            )
+                        if (insertPhotoAdapter.getFileList().size - 1 > insertPhotoAdapter.getFileList()
+                                .indexOf(
+                                    photoInfoBean
+                                )
                         ) {
                             builder.append("|")
                         }
@@ -333,7 +386,7 @@ class ReplyActivity : BaseActivity(), View.OnClickListener {
                 return
             }
             UploadHelper.with(this)
-                .setFileList(insertPhotoAdapter!!.fileList)
+                .setFileList(insertPhotoAdapter.getFileList())
                 .setCallback(object : UploadCallback {
                     override fun onSuccess(photoInfoBeans: List<PhotoInfoBean>) {
                         for (photoInfoBean in photoInfoBeans) {
@@ -367,7 +420,8 @@ class ReplyActivity : BaseActivity(), View.OnClickListener {
     }
 
     private fun hasPhoto(): Boolean {
-        return insertPhotoAdapter!!.fileList != null && insertPhotoAdapter!!.fileList.size > 0
+        return insertPhotoAdapter.getFileList()
+            .isNotEmpty()
     }
 
     private fun setEnabled(imageButton: TintImageView, enable: Boolean) {
@@ -534,20 +588,6 @@ class ReplyActivity : BaseActivity(), View.OnClickListener {
                 Toast.makeText(this@ReplyActivity, error, Toast.LENGTH_SHORT).show()
             }
         })
-    }
-
-    override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
-        super.onActivityResult(requestCode, resultCode, data)
-        if (requestCode == REQUEST_CODE_CHOOSE && resultCode == RESULT_OK) {
-            val uriList = Matisse.obtainResult(data)
-            val photoInfoBeans = insertPhotoAdapter!!.fileList
-            for (uri in uriList) {
-                val infoBean = PhotoInfoBean(this, uri)
-                photoInfoBeans.add(infoBean)
-            }
-            insertPhotoAdapter!!.fileList = photoInfoBeans
-            sendItem!!.isEnabled = true
-        }
     }
 
     override fun onClick(v: View) {

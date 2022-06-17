@@ -1,5 +1,7 @@
 package com.huanchengfly.tieba.post.adapters.forum;
 
+import static com.huanchengfly.tieba.post.activities.PhotoViewActivity.OBJ_TYPE_FORUM_PAGE;
+
 import android.content.Context;
 import android.content.Intent;
 import android.text.TextUtils;
@@ -13,9 +15,12 @@ import androidx.annotation.NonNull;
 import androidx.cardview.widget.CardView;
 import androidx.gridlayout.widget.GridLayout;
 
+import com.alibaba.android.vlayout.LayoutHelper;
 import com.alibaba.android.vlayout.layout.LinearLayoutHelper;
+import com.alibaba.android.vlayout.layout.StaggeredGridLayoutHelper;
 import com.bumptech.glide.Glide;
 import com.huanchengfly.tieba.post.BaseApplication;
+import com.huanchengfly.tieba.post.ExtensionsKt;
 import com.huanchengfly.tieba.post.R;
 import com.huanchengfly.tieba.post.activities.ThreadActivity;
 import com.huanchengfly.tieba.post.adapters.base.BaseMultiTypeDelegateAdapter;
@@ -43,8 +48,6 @@ import java.util.Objects;
 
 import cn.jzvd.Jzvd;
 
-import static com.huanchengfly.tieba.post.activities.PhotoViewActivity.OBJ_TYPE_FORUM_PAGE;
-
 public class NewForumAdapter extends BaseMultiTypeDelegateAdapter<ForumPageBean.ThreadBean> {
     public static final String TAG = NewForumAdapter.class.getSimpleName();
     public static final int TYPE_THREAD_COMMON = 11;
@@ -54,6 +57,16 @@ public class NewForumAdapter extends BaseMultiTypeDelegateAdapter<ForumPageBean.
     private ForumPageBean data;
     private Map<String, ForumPageBean.UserBean> userBeanMap;
     private List<Long> ids;
+
+    @NonNull
+    @Override
+    public LayoutHelper onCreateLayoutHelper() {
+        if (ExtensionsKt.isTablet(getContext())) {
+            return new StaggeredGridLayoutHelper(2);
+        } else {
+            return new LinearLayoutHelper();
+        }
+    }
 
     public NewForumAdapter(Context context) {
         super(context, new LinearLayoutHelper());
@@ -73,11 +86,19 @@ public class NewForumAdapter extends BaseMultiTypeDelegateAdapter<ForumPageBean.
     }
 
     private int getMaxWidth() {
-        return BaseApplication.ScreenInfo.EXACT_SCREEN_WIDTH - DisplayUtil.dp2px(getContext(), 40);
+        int maxWidth = BaseApplication.ScreenInfo.EXACT_SCREEN_WIDTH - DisplayUtil.dp2px(getContext(), 40);
+        if (ExtensionsKt.isTablet(getContext())) {
+            return maxWidth / 2;
+        }
+        return maxWidth;
     }
 
     private int getGridHeight() {
-        return (BaseApplication.ScreenInfo.EXACT_SCREEN_WIDTH - DisplayUtil.dp2px(getContext(), 70)) / 3;
+        int maxWidth = BaseApplication.ScreenInfo.EXACT_SCREEN_WIDTH - DisplayUtil.dp2px(getContext(), 70);
+        if (ExtensionsKt.isTablet(getContext())) {
+            maxWidth = maxWidth / 2;
+        }
+        return maxWidth / 3;
     }
 
     private RelativeLayout.LayoutParams getLayoutParams(RelativeLayout.LayoutParams layoutParams) {

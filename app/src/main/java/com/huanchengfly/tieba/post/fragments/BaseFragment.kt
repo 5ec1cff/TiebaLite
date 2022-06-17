@@ -14,6 +14,9 @@ import butterknife.ButterKnife
 import butterknife.Unbinder
 import com.huanchengfly.tieba.post.interfaces.BackHandledInterface
 import com.huanchengfly.tieba.post.interfaces.Refreshable
+import com.huanchengfly.tieba.post.isLandscape
+import com.huanchengfly.tieba.post.isPortrait
+import com.huanchengfly.tieba.post.isTablet
 import com.huanchengfly.tieba.post.utils.AppPreferencesUtils
 import com.huanchengfly.tieba.post.utils.HandleBackUtil
 import kotlinx.coroutines.*
@@ -186,6 +189,15 @@ abstract class BaseFragment : Fragment(), BackHandledInterface, CoroutineScope {
             (this as Refreshable).onRefresh()
         }
     }
+
+    protected val isTablet: Boolean
+        get() = attachContext.isTablet
+
+    protected val isPortrait: Boolean
+        get() = attachContext.resources.configuration.isPortrait
+
+    protected val isLandscape: Boolean
+        get() = attachContext.resources.configuration.isLandscape
 
     open fun hasOwnAppbar(): Boolean {
         return false

@@ -9,7 +9,9 @@ import com.huanchengfly.tieba.post.api.SearchThreadOrder
 import com.huanchengfly.tieba.post.api.interfaces.ITiebaApi
 import com.huanchengfly.tieba.post.api.models.*
 import com.huanchengfly.tieba.post.api.models.web.ForumBean
+import com.huanchengfly.tieba.post.api.models.web.ForumHome
 import com.huanchengfly.tieba.post.api.models.web.HotMessageListBean
+import com.huanchengfly.tieba.post.api.models.web.Profile
 import com.huanchengfly.tieba.post.api.retrofit.ApiResult
 import com.huanchengfly.tieba.post.api.retrofit.RetrofitTiebaApi
 import com.huanchengfly.tieba.post.models.DislikeBean
@@ -27,6 +29,9 @@ import java.net.URLEncoder
 object MixedTiebaApiImpl : ITiebaApi {
     override fun personalized(loadType: Int, page: Int): Call<PersonalizedBean> =
         RetrofitTiebaApi.MINI_TIEBA_API.personalized(loadType, page)
+
+    override fun myProfileAsync(): Deferred<ApiResult<Profile>> =
+        RetrofitTiebaApi.WEB_TIEBA_API.myProfileAsync("json", "", "")
 
     override fun agree(
         threadId: String,
@@ -67,6 +72,16 @@ object MixedTiebaApiImpl : ITiebaApi {
         threadId: String, page: Int, postId: String?, subPostId: String?
     ): Call<SubFloorListBean> =
         RetrofitTiebaApi.MINI_TIEBA_API.floor(threadId, page, postId, subPostId)
+
+    override fun forumHomeAsync(sortType: Int, page: Int): Deferred<ApiResult<ForumHome>> {
+        return RetrofitTiebaApi.WEB_TIEBA_API.getForumHomeAsync(
+            sortType,
+            page,
+            20,
+            "",
+            ""
+        )
+    }
 
     override fun userLikeForum(
         uid: String, page: Int
