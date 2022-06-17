@@ -86,6 +86,7 @@ class BaseApplication : Application(), IApp {
         ThemeUtils.init(ThemeDelegate)
         AppCompatDelegate.setDefaultNightMode(AppCompatDelegate.MODE_NIGHT_FOLLOW_SYSTEM)
         LitePal.initialize(this)
+        /*
         registerActivityLifecycleCallbacks(object : ActivityLifecycleCallbacks {
             private var clipBoardHash: String? = null
             private fun updateClipBoardHashCode() {
@@ -218,7 +219,7 @@ class BaseApplication : Application(), IApp {
             override fun onActivityStopped(activity: Activity) {}
             override fun onActivitySaveInstanceState(activity: Activity, outState: Bundle) {}
             override fun onActivityDestroyed(activity: Activity) {}
-        })
+        })*/
         if (BuildConfig.DEBUG) CrashUtil.CrashHandler.getInstance().init(this)
         PluginManager.init(this)
     }
