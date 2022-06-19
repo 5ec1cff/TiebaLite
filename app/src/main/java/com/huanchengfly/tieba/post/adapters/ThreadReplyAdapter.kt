@@ -35,6 +35,7 @@ import com.huanchengfly.tieba.post.fragments.FloorFragment.Companion.newInstance
 import com.huanchengfly.tieba.post.fragments.MenuDialogFragment
 import com.huanchengfly.tieba.post.models.ReplyInfoBean
 import com.huanchengfly.tieba.post.plugins.PluginManager
+import com.huanchengfly.tieba.post.toJson
 import com.huanchengfly.tieba.post.ui.theme.utils.ThemeUtils
 import com.huanchengfly.tieba.post.utils.*
 import com.huanchengfly.tieba.post.utils.BilibiliUtil.replaceVideoNumberSpan
@@ -274,6 +275,10 @@ class ThreadReplyAdapter(context: Context) : BaseSingleTypeDelegateAdapter<PostL
                             copyText(context as BaseActivity, contentBeansToSimpleString(subPostListItemBean.content!!))
                             return@setOnNavigationItemSelectedListener true
                         }
+                        R.id.menu_copy_json -> {
+                            TiebaUtil.copyText(context as BaseActivity, subPostListItemBean.toJson())
+                            return@setOnNavigationItemSelectedListener true
+                        }
                         R.id.menu_delete -> {
                             if (TextUtils.equals(AccountUtil.getUid(context), subPostListItemBean.authorId)) {
                                 ConfirmDialogFragment.newInstance(context.getString(R.string.title_dialog_del_post))
@@ -346,6 +351,10 @@ class ThreadReplyAdapter(context: Context) : BaseSingleTypeDelegateAdapter<PostL
                         R.id.menu_copy -> {
                             copyText(context as BaseActivity, contentBeansToSimpleString(postListItemBean.content!!))
                             // Util.showCopyDialog(context as BaseActivity, stringBuilder.toString(), postListItemBean.id)
+                            return@setOnNavigationItemSelectedListener true
+                        }
+                        R.id.menu_copy_json -> {
+                            TiebaUtil.copyText(context as BaseActivity, postListItemBean.toJson())
                             return@setOnNavigationItemSelectedListener true
                         }
                         R.id.menu_delete -> {

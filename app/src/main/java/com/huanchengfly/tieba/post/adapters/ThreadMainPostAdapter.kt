@@ -21,6 +21,7 @@ import com.huanchengfly.tieba.post.components.MyViewHolder
 import com.huanchengfly.tieba.post.fragments.MenuDialogFragment
 import com.huanchengfly.tieba.post.models.ReplyInfoBean
 import com.huanchengfly.tieba.post.plugins.PluginManager
+import com.huanchengfly.tieba.post.toJson
 import com.huanchengfly.tieba.post.utils.*
 import com.huanchengfly.tieba.post.utils.TiebaUtil.reportPost
 import com.huanchengfly.tieba.post.widgets.MyLinearLayout
@@ -116,6 +117,10 @@ class ThreadMainPostAdapter(
                                 stringBuilder.toString(),
                                 threadPostBean!!.id
                             )*/
+                            true
+                        }
+                        R.id.menu_copy_json -> {
+                            TiebaUtil.copyText(context as BaseActivity, threadPostBean!!.toJson())
                             true
                         }
                         else -> PluginManager.performPluginMenuClick(

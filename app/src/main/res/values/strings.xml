@@ -522,4 +522,5 @@
     <string name="title_hide_forum_intro_and_stat">精简吧页面</string>
     <string name="summary_hide_forum_intro_and_stat">开启后将隐藏吧页面的吧简介和数据（仍然可以通过“关于本吧”查看这些内容）</string>
     <string name="relative_date_today">今天 %1$s</string>
+    <string name="title_copy_json">复制 json</string>
 </resources>

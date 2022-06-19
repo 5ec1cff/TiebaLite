@@ -13,6 +13,10 @@
         android:icon="@drawable/ic_round_warning"
         android:title="@string/title_report" />
     <item
+        android:id="@+id/menu_copy_json"
+        android:icon="@drawable/ic_round_file_copy"
+        android:title="@string/title_copy_json" />
+    <item
         android:id="@+id/menu_delete"
         android:icon="@drawable/ic_round_delete"
         android:title="@string/title_delete_post"
