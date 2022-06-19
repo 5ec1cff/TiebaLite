@@ -2,9 +2,7 @@ package com.huanchengfly.tieba.post.utils
 
 import android.content.Context
 import android.graphics.Bitmap
-import android.text.SpannableStringBuilder
-import android.text.Spanned
-import android.text.TextUtils
+import android.text.*
 import android.view.Gravity
 import android.view.View
 import android.view.ViewGroup
@@ -18,6 +16,7 @@ import com.huanchengfly.tieba.post.activities.WebViewActivity
 import com.huanchengfly.tieba.post.api.models.ThreadContentBean
 import com.huanchengfly.tieba.post.api.models.ThreadContentBean.PostListItemBean
 import com.huanchengfly.tieba.post.components.LinkTouchMovementMethod
+import com.huanchengfly.tieba.post.components.spans.EmotionSpanV2
 import com.huanchengfly.tieba.post.components.spans.MyImageSpan
 import com.huanchengfly.tieba.post.components.spans.MyURLSpan
 import com.huanchengfly.tieba.post.components.spans.MyUserSpan
@@ -133,7 +132,7 @@ class PostListAdapterHelper(
     private fun setText(textView: TextView, content: CharSequence?) {
         var text = content
         text = replaceVideoNumberSpan(context, text)
-        text = StringUtil.getEmotionContent(EmotionUtil.EMOTION_ALL_TYPE, textView, text)
+        // text = StringUtil.getEmotionContent(EmotionUtil.EMOTION_ALL_TYPE, textView, text)
         textView.text = text
     }
 
@@ -193,17 +192,6 @@ class PostListAdapterHelper(
         return layoutParams
     }
 
-    private fun appendTextToLastTextView(views: List<View>, newContent: CharSequence?): Boolean {
-        val lastView = views.lastOrNull()
-        if (lastView is TextView) {
-            val spannableStringBuilder = SpannableStringBuilder(lastView.text)
-            spannableStringBuilder.append(newContent ?: "")
-            setText(lastView, spannableStringBuilder)
-            return false
-        }
-        return true
-    }
-
     private fun getLinkContent(newContent: CharSequence?, url: String): CharSequence {
         return getLinkContent("", newContent, url)
     }
@@ -239,19 +227,6 @@ class PostListAdapterHelper(
         return spannableStringBuilder
     }
 
-    private fun appendLinkToLastTextView(
-        views: List<View>,
-        newContent: CharSequence?,
-        url: String
-    ): Boolean {
-        val lastView = views.lastOrNull()
-        if (lastView is TextView) {
-            setText(lastView, getLinkContent(lastView.text, newContent, url))
-            return false
-        }
-        return true
-    }
-
     private fun getUserContent(newContent: CharSequence?, uid: String): CharSequence {
         return getUserContent("", newContent, uid)
     }
@@ -274,19 +249,6 @@ class PostListAdapterHelper(
         return spannableStringBuilder
     }
 
-    private fun appendUserToLastTextView(
-        views: List<View>,
-        newContent: CharSequence?,
-        uid: String
-    ): Boolean {
-        val lastView = views.lastOrNull()
-        if (lastView is TextView) {
-            setText(lastView, getUserContent(lastView.text, newContent, uid))
-            return false
-        }
-        return true
-    }
-
     private fun getPhotoViewBeans(): List<PhotoViewBean> {
         val photoViewBeans: MutableList<PhotoViewBean> = mutableListOf()
         for (key in photoViewBeansMap.keys) {
@@ -300,32 +262,35 @@ class PostListAdapterHelper(
 
     fun getContentViews(postListItemBean: PostListItemBean): List<View> {
         val views: MutableList<View> = ArrayList()
+        var textToAppend = SpannableStringBuilder()
+        var viewToAppend: View? = null
+        val emotionsToAppend = mutableListOf<EmotionSpanV2>()
+        val emotionNames = mutableSetOf<String>()
+        fun addTextView() {
+            if (textToAppend.isNotEmpty()) {
+                views.add(createTextView().apply {
+                    text = textToAppend
+                    layoutParams = defaultLayoutParams
+                    val size = (-paint.ascent() + paint.descent()).roundToInt()
+                    emotionsToAppend.forEach {
+                        it.size = size
+                    }
+                    EmotionManager.preloadEmotionsForView(emotionNames, context, this)
+                    emotionNames.clear()
+                    emotionsToAppend.clear()
+                })
+                textToAppend = SpannableStringBuilder()
+            }
+        }
         for (contentBean in postListItemBean.content!!) {
             when (contentBean.type) {
-                "0", "9" -> {
-                    if (appendTextToLastTextView(views, contentBean.text)) {
-                        val textView: TextView = createTextView()
-                        textView.layoutParams =
-                            getLayoutParams(contentBean, postListItemBean.floor!!)
-                        setText(textView, contentBean.text)
-                        views.add(textView)
-                    }
-                }
-                "1" -> if (appendLinkToLastTextView(views, contentBean.text, contentBean.link!!)) {
-                    val textView: TextView = createTextView()
-                    textView.layoutParams = getLayoutParams(contentBean, postListItemBean.floor!!)
-                    setText(textView, getLinkContent(contentBean.text, contentBean.link))
-                    views.add(textView)
-                }
+                "0", "9" -> textToAppend.append(replaceVideoNumberSpan(context, contentBean.text))
+                "1" -> textToAppend.append(getLinkContent(contentBean.text, contentBean.link!!))
                 "2" -> {
-                    val emojiText = "#(" + contentBean.c + ")"
-                    if (appendTextToLastTextView(views, emojiText)) {
-                        val textView: TextView = createTextView()
-                        textView.layoutParams =
-                            getLayoutParams(contentBean, postListItemBean.floor!!)
-                        setText(textView, emojiText)
-                        views.add(textView)
-                    }
+                    val emojiText = "#(${contentBean.c})"
+                    emotionNames.add(contentBean.text!!)
+                    textToAppend.append(emojiText, EmotionSpanV2(contentBean.text!!, context).also { emotionsToAppend.add(it) },
+                        Spannable.SPAN_EXCLUSIVE_EXCLUSIVE)
                 }
                 "3" -> {
                     val url = ImageUtil.getUrl(
@@ -359,14 +324,9 @@ class PostListAdapterHelper(
                             break
                         }
                     }
-                    views.add(imageView)
+                    viewToAppend = imageView
                 }
-                "4" -> if (appendUserToLastTextView(views, contentBean.text, contentBean.uid!!)) {
-                    val textView: TextView = createTextView()
-                    textView.layoutParams = getLayoutParams(contentBean, postListItemBean.floor!!)
-                    setText(textView, getUserContent(contentBean.text, contentBean.uid))
-                    views.add(textView)
-                }
+                "4" -> textToAppend.append(getUserContent(contentBean.text, contentBean.uid!!))
                 "5" -> if (contentBean.src != null && contentBean.width != null && contentBean.height != null) {
                     if (contentBean.link != null) {
                         val videoPlayerStandard = VideoPlayerStandard(context)
@@ -380,7 +340,7 @@ class PostListAdapterHelper(
                             contentBean.src,
                             true
                         )
-                        views.add(videoPlayerStandard)
+                        viewToAppend = videoPlayerStandard
                     } else {
                         val videoImageView = MyImageView(context)
                         videoImageView.layoutParams =
@@ -395,23 +355,10 @@ class PostListAdapterHelper(
                         videoImageView.setOnClickListener {
                             WebViewActivity.launch(context, contentBean.text)
                         }
-                        views.add(videoImageView)
+                        viewToAppend = videoImageView
                     }
                 } else {
-                    if (appendLinkToLastTextView(
-                            views,
-                            "[视频] " + contentBean.text,
-                            contentBean.text!!
-                        )
-                    ) {
-                        val textView: TextView = createTextView()
-                        textView.layoutParams = defaultLayoutParams
-                        setText(
-                            textView,
-                            getLinkContent("[视频] " + contentBean.text, contentBean.text!!)
-                        )
-                        views.add(textView)
-                    }
+                    textToAppend.append(getLinkContent("[视频] " + contentBean.text, contentBean.text!!))
                 }
                 "10" -> {
                     val voiceUrl =
@@ -423,7 +370,7 @@ class PostListAdapterHelper(
                     )
                     voicePlayerView.duration = Integer.valueOf(contentBean.duringTime!!)
                     voicePlayerView.url = voiceUrl
-                    views.add(voicePlayerView)
+                    viewToAppend = voicePlayerView
                 }
                 "20" -> {
                     val memeImageView = MyImageView(context)
@@ -435,12 +382,18 @@ class PostListAdapterHelper(
                         memeImageView,
                         PhotoViewBean(contentBean.src, contentBean.src, false)
                     )
-                    views.add(memeImageView)
+                    viewToAppend = memeImageView
                 }
                 else -> {
                 }
             }
+            if (viewToAppend != null) {
+                addTextView()
+                views.add(viewToAppend)
+                viewToAppend = null
+            }
         }
+        addTextView()
         return views
     }
 

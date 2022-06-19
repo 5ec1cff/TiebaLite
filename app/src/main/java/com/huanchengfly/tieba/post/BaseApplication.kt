@@ -86,6 +86,7 @@ class BaseApplication : Application(), IApp {
         ThemeUtils.init(ThemeDelegate)
         AppCompatDelegate.setDefaultNightMode(AppCompatDelegate.MODE_NIGHT_FOLLOW_SYSTEM)
         LitePal.initialize(this)
+        EmotionManager.Init(this)
         /*
         registerActivityLifecycleCallbacks(object : ActivityLifecycleCallbacks {
             private var clipBoardHash: String? = null
