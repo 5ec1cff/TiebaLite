@@ -94,15 +94,10 @@ class ThreadMainPostAdapter(
                 .setOnNavigationItemSelectedListener { item: MenuItem ->
                     when (item.itemId) {
                         R.id.menu_reply -> {
-                            context.startActivity(Intent(context, ReplyActivity::class.java)
-                                    .putExtra("data", ReplyInfoBean(dataBean?.thread!!.id,
-                                            dataBean?.forum!!.id,
-                                            dataBean?.forum!!.name,
-                                            dataBean?.anti!!.tbs,
-                                            threadPostBean!!.id,
-                                            threadPostBean!!.floor,
-                                            userInfoBean.nameShow,
-                                            dataBean?.user!!.nameShow).setPn(dataBean?.page!!.offset).toString()))
+                            ReplyActivity.start(context, dataBean!!,
+                                            pid = threadPostBean!!.id,
+                                            floorNum = threadPostBean!!.floor,
+                                            replyUser = userInfoBean.nameShow)
                             true
                         }
                         R.id.menu_report -> {

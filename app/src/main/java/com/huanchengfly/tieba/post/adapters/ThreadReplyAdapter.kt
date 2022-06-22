@@ -126,31 +126,11 @@ class ThreadReplyAdapter(context: Context) : BaseSingleTypeDelegateAdapter<PostL
             }
             builder.append(":")
         }
+        val contentView: View
         if (subPostListItemBean.content!!.isNotEmpty() && "10" == subPostListItemBean.content[0].type) {
             val voiceUrl = "http://c.tieba.baidu.com/c/p/voice?voice_md5=" + subPostListItemBean.content[0].voiceMD5 + "&play_from=pb_voice_play"
             val container = RelativeLayout(context)
             container.layoutParams = defaultLayoutParamsWithNoMargins
-            container.setPadding(DisplayUtil.dp2px(context, 8f),
-                    8,
-                    DisplayUtil.dp2px(context, 8f),
-                    8)
-            container.background = Util.getDrawableByAttr(context, R.attr.selectableItemBackground)
-            container.setOnClickListener {
-                context.startActivity(Intent(context, ReplyActivity::class.java)
-                        .putExtra("data", ReplyInfoBean(dataBean!!.thread!!.id,
-                                dataBean!!.forum!!.id,
-                                dataBean!!.forum!!.name,
-                                dataBean!!.anti!!.tbs,
-                                postListItemBean.id,
-                                subPostListItemBean.id,
-                                postListItemBean.floor,
-                                if (userInfoBean != null) userInfoBean.nameShow else "",
-                                dataBean!!.user!!.nameShow).setPn(dataBean!!.page!!.offset).toString()))
-            }
-            container.setOnLongClickListener {
-                showMenu(postListItemBean, subPostListItemBean, getItemList().indexOf(postListItemBean), postListItemBean.subPostList!!.subPostList!!.indexOf(subPostListItemBean))
-                true
-            }
             View.inflate(context, R.layout.layout_floor_audio, container)
             val mTextView = container.findViewById<TextView>(R.id.floor_user)
             val mVoicePlayerView: VoicePlayerView = container.findViewById(R.id.floor_audio)
@@ -158,58 +138,75 @@ class ThreadReplyAdapter(context: Context) : BaseSingleTypeDelegateAdapter<PostL
             mTextView.text = builder
             mVoicePlayerView.duration = Integer.valueOf(subPostListItemBean.content[0].duringTime!!)
             mVoicePlayerView.url = voiceUrl
-            return container
-        }
-        val textView = createTextView()
-        textView.layoutParams = defaultLayoutParamsWithNoMargins
-        val paint = textView.paint
-        val size = (-paint.ascent() + paint.descent()).roundToInt()
-        val emotionsToAdd = mutableSetOf<String>()
-        for (contentBean in subPostListItemBean.content) {
-            when (contentBean.type) {
-                "0" -> {
-                    if (BlockUtil.needBlock(contentBean.text) || BlockUtil.needBlock(userInfoBean)) {
-                        textView.visibility = View.GONE
+            contentView = container
+        } else {
+            val textView = createTextView()
+            textView.layoutParams = defaultLayoutParamsWithNoMargins
+            val paint = textView.paint
+            val size = (-paint.ascent() + paint.descent()).roundToInt()
+            val emotionsToAdd = mutableSetOf<String>()
+            for (contentBean in subPostListItemBean.content) {
+                when (contentBean.type) {
+                    "0" -> {
+                        if (BlockUtil.needBlock(contentBean.text) || BlockUtil.needBlock(
+                                userInfoBean
+                            )
+                        ) {
+                            textView.visibility = View.GONE
+                        }
+                        builder.append(contentBean.text)
                     }
-                    builder.append(contentBean.text)
-                }
-                "1" -> builder.append(contentBean.text, MyURLSpan(context, contentBean.link), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE)
-                "2" -> {
-                    val emojiText = "#(" + contentBean.c + ")"
-                    val emotionName = contentBean.text!!
-                    emotionsToAdd.add(emotionName)
-                    builder.append(emojiText, EmotionSpanV2(emotionName, context).apply { this.size = size }, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE)
-                }
-                "4", "9" -> builder.append(contentBean.text)
-                else -> {
+                    "1" -> builder.append(
+                        contentBean.text,
+                        MyURLSpan(context, contentBean.link),
+                        Spanned.SPAN_EXCLUSIVE_EXCLUSIVE
+                    )
+                    "2" -> {
+                        val emojiText = "#(" + contentBean.c + ")"
+                        val emotionName = contentBean.text!!
+                        emotionsToAdd.add(emotionName)
+                        builder.append(
+                            emojiText,
+                            EmotionSpanV2(emotionName, context).apply { this.size = size },
+                            Spanned.SPAN_EXCLUSIVE_EXCLUSIVE
+                        )
+                    }
+                    "4", "9" -> builder.append(contentBean.text)
+                    else -> {
+                    }
                 }
             }
+            EmotionManager.preloadEmotionsForView(emotionsToAdd, context, textView)
+            // textView.text = replaceVideoNumberSpan(context, StringUtil.getEmotionContent(EmotionUtil.EMOTION_ALL_TYPE, textView, builder))
+            textView.text = replaceVideoNumberSpan(context, builder)
+            contentView = textView
         }
-        EmotionManager.preloadEmotionsForView(emotionsToAdd, context, textView)
-        // textView.text = replaceVideoNumberSpan(context, StringUtil.getEmotionContent(EmotionUtil.EMOTION_ALL_TYPE, textView, builder))
-        textView.text = replaceVideoNumberSpan(context, builder)
-        textView.setPadding(DisplayUtil.dp2px(context, 8f),
-                8,
-                DisplayUtil.dp2px(context, 8f),
-                8)
-        textView.background = Util.getDrawableByAttr(context, R.attr.selectableItemBackground)
-        textView.setOnClickListener {
-            context.startActivity(Intent(context, ReplyActivity::class.java)
-                    .putExtra("data", ReplyInfoBean(dataBean!!.thread!!.id,
-                            dataBean!!.forum!!.id,
-                            dataBean!!.forum!!.name,
-                            dataBean!!.anti!!.tbs,
-                            postListItemBean.id,
-                            subPostListItemBean.id,
-                            postListItemBean.floor,
-                            if (userInfoBean != null) userInfoBean.nameShow else "",
-                            dataBean!!.user!!.nameShow).setPn(dataBean!!.page!!.offset).toString()))
+        contentView.apply {
+            setPadding(DisplayUtil.dp2px(context, 8f), 8, DisplayUtil.dp2px(context, 8f), 8)
+            background = Util.getDrawableByAttr(context, R.attr.selectableItemBackground)
+            setOnClickListener {
+                ReplyActivity.start(context, dataBean!!,
+                    postListItemBean.id,
+                    subPostListItemBean.id,
+                    postListItemBean.floor,
+                    if (userInfoBean != null) userInfoBean.nameShow else "")
+                setOnLongClickListener {
+                    showMenu(
+                        postListItemBean,
+                        subPostListItemBean,
+                        getItemList().indexOf(postListItemBean),
+                        postListItemBean.subPostList!!.subPostList!!.indexOf(subPostListItemBean)
+                    )
+                    true
+                }
+            }
+            return contentView
         }
-        textView.setOnLongClickListener {
-            showMenu(postListItemBean, subPostListItemBean, getItemList().indexOf(postListItemBean), postListItemBean.subPostList!!.subPostList!!.indexOf(subPostListItemBean))
-            true
-        }
-        return textView
+    }
+
+    private fun showFloorFragment(pid: String) {
+        newInstance(threadBean!!.id, pid, null, true)
+            .show((context as BaseActivity).supportFragmentManager, threadBean!!.id + "_Floor")
     }
 
     private fun initFloorView(holder: MyViewHolder, bean: PostListItemBean) {
@@ -240,18 +237,7 @@ class ThreadReplyAdapter(context: Context) : BaseSingleTypeDelegateAdapter<PostL
             myLinearLayout.addViews(views)
             more.setOnClickListener {
                 try {
-                    if (bean.subPostList.subPostList.size < count) {
-                        newInstance(threadBean!!.id, bean.subPostList.pid, null, true)
-                                .show((context as BaseActivity).supportFragmentManager, threadBean!!.id + "_Floor")
-                    } else {
-                        myLinearLayout.removeAllViews()
-                        val newViews: MutableList<View> = ArrayList()
-                        for (postListItemBean in bean.subPostList.subPostList) {
-                            newViews.add(getContentView(postListItemBean, bean))
-                        }
-                        myLinearLayout.addViews(newViews)
-                        more.visibility = View.GONE
-                    }
+                    showFloorFragment(bean.subPostList.pid!!)
                 } catch (e: NumberFormatException) {
                     e.printStackTrace()
                 }
@@ -267,17 +253,11 @@ class ThreadReplyAdapter(context: Context) : BaseSingleTypeDelegateAdapter<PostL
                 .setOnNavigationItemSelectedListener { item: MenuItem ->
                     when (item.itemId) {
                         R.id.menu_reply -> {
-                            val replyData = ReplyInfoBean(dataBean!!.thread!!.id,
-                                    dataBean!!.forum!!.id,
-                                    dataBean!!.forum!!.name,
-                                    dataBean!!.anti!!.tbs,
-                                    postListItemBean.id,
-                                    subPostListItemBean.id,
-                                    postListItemBean.floor,
-                                    if (userInfoBean != null) userInfoBean.nameShow else "",
-                                    dataBean!!.user!!.nameShow).setPn(dataBean!!.page!!.offset).toString()
-                            context.startActivity(Intent(context, ReplyActivity::class.java)
-                                    .putExtra("data", replyData))
+                            ReplyActivity.start(context, dataBean!!,
+                                pid = postListItemBean.id,
+                                floorNum = postListItemBean.floor,
+                                spid = subPostListItemBean.id,
+                                replyUser = if (userInfoBean != null) userInfoBean.nameShow else "")
                             return@setOnNavigationItemSelectedListener true
                         }
                         R.id.menu_copy -> {
@@ -343,15 +323,10 @@ class ThreadReplyAdapter(context: Context) : BaseSingleTypeDelegateAdapter<PostL
                 .setOnNavigationItemSelectedListener { item: MenuItem ->
                     when (item.itemId) {
                         R.id.menu_reply -> {
-                            context.startActivity(Intent(context, ReplyActivity::class.java)
-                                    .putExtra("data", ReplyInfoBean(dataBean!!.thread!!.id,
-                                            dataBean!!.forum!!.id,
-                                            dataBean!!.forum!!.name,
-                                            dataBean!!.anti!!.tbs,
-                                            postListItemBean.id,
-                                            postListItemBean.floor,
-                                            if (userInfoBean != null) userInfoBean.nameShow else "",
-                                            dataBean!!.user!!.nameShow).setPn(dataBean!!.page!!.offset).toString()))
+                            ReplyActivity.start(context, dataBean!!,
+                                pid = postListItemBean.id,
+                                floorNum = postListItemBean.floor,
+                                replyUser = if (userInfoBean != null) userInfoBean.nameShow else "")
                             return@setOnNavigationItemSelectedListener true
                         }
                         R.id.menu_report -> {
@@ -554,15 +529,10 @@ class ThreadReplyAdapter(context: Context) : BaseSingleTypeDelegateAdapter<PostL
         setOnItemClickListener(object : OnItemClickListener<PostListItemBean> {
             override fun onClick(viewHolder: MyViewHolder, item: PostListItemBean, position: Int) {
                 val userInfoBean = userInfoBeanMap[item.authorId]
-                context.startActivity(Intent(context, ReplyActivity::class.java)
-                        .putExtra("data", ReplyInfoBean(dataBean!!.thread!!.id,
-                                dataBean!!.forum!!.id,
-                                dataBean!!.forum!!.name,
-                                dataBean!!.anti!!.tbs,
-                                item.id,
-                                item.floor,
-                                if (userInfoBean != null) userInfoBean.nameShow else "",
-                                dataBean!!.user!!.nameShow).setPn(dataBean!!.page!!.offset).toString()))
+                ReplyActivity.start(context, dataBean!!,
+                    pid = item.id,
+                    floorNum = item.floor,
+                    replyUser = if (userInfoBean != null) userInfoBean.nameShow else "")
             }
         })
         helper = PostListAdapterHelper(context)

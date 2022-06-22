@@ -692,12 +692,7 @@ class ThreadActivity : BaseActivity(), View.OnClickListener, IThreadMenuFragment
     override fun onClick(v: View) {
         when (v.id) {
             R.id.thread_reply_bar -> if (dataBean != null && dataBean!!.thread != null) {
-                startActivity(Intent(this@ThreadActivity, ReplyActivity::class.java)
-                    .putExtra("data", ReplyInfoBean(dataBean!!.thread?.id,
-                        dataBean!!.forum?.id,
-                        dataBean!!.forum?.name,
-                        dataBean!!.anti?.tbs,
-                        dataBean!!.user?.nameShow).setPn(dataBean!!.page?.offset).toString()))
+                ReplyActivity.start(this@ThreadActivity, dataBean!!)
             }
             R.id.toolbar -> recyclerView.scrollToPosition(0)
             R.id.thread_bottom_bar_more_btn -> {

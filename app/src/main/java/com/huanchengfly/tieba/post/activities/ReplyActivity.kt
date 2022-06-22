@@ -2,6 +2,7 @@ package com.huanchengfly.tieba.post.activities
 
 import android.annotation.SuppressLint
 import android.content.ActivityNotFoundException
+import android.content.Context
 import android.content.Intent
 import android.content.Intent.ACTION_VIEW
 import android.content.pm.PackageManager
@@ -37,6 +38,8 @@ import com.huanchengfly.tieba.post.adapters.InsertPhotoAdapter
 import com.huanchengfly.tieba.post.adapters.TabViewPagerAdapter
 import com.huanchengfly.tieba.post.adapters.TextWatcherAdapter
 import com.huanchengfly.tieba.post.api.TiebaApi
+import com.huanchengfly.tieba.post.api.models.SubFloorListBean
+import com.huanchengfly.tieba.post.api.models.ThreadContentBean
 import com.huanchengfly.tieba.post.api.retrofit.doIfFailure
 import com.huanchengfly.tieba.post.api.retrofit.doIfSuccess
 import com.huanchengfly.tieba.post.components.EmotionViewFactory
@@ -516,7 +519,7 @@ class ReplyActivity : BaseActivity(), View.OnClickListener,
                                     replyContent,
                                     data,
                                     replyInfoBean!!.nickName,
-                                    replyInfoBean!!.pn,
+                                    replyInfoBean!!.pn!!,
                                     it
                                 )
                             }
@@ -528,10 +531,10 @@ class ReplyActivity : BaseActivity(), View.OnClickListener,
                                     replyContent,
                                     data,
                                     replyInfoBean!!.nickName,
-                                    replyInfoBean!!.pid,
-                                    replyInfoBean!!.spid,
-                                    replyInfoBean!!.floorNum,
-                                    replyInfoBean!!.pn,
+                                    replyInfoBean!!.pid!!,
+                                    replyInfoBean!!.spid!!,
+                                    replyInfoBean!!.floorNum!!,
+                                    replyInfoBean!!.pn!!,
                                     it
                                 )
                             }
@@ -543,9 +546,9 @@ class ReplyActivity : BaseActivity(), View.OnClickListener,
                                     replyContent,
                                     data,
                                     replyInfoBean!!.nickName,
-                                    replyInfoBean!!.pid,
-                                    replyInfoBean!!.floorNum,
-                                    replyInfoBean!!.pn,
+                                    replyInfoBean!!.pid!!,
+                                    replyInfoBean!!.floorNum!!,
+                                    replyInfoBean!!.pn!!,
                                     it
                                 )
                             }
@@ -602,5 +605,44 @@ class ReplyActivity : BaseActivity(), View.OnClickListener,
     companion object {
         const val REQUEST_CODE_CHOOSE = 2
         const val TAG = "ReplyActivity"
+
+        fun start(context: Context, dataBean: ThreadContentBean,
+                  pid: String? = null, spid: String? = null,
+                  floorNum: String? = null, replyUser: String? = null) {
+            context.startActivity(
+                Intent(context, ReplyActivity::class.java)
+                    .putExtra(
+                        "data", ReplyInfoBean(
+                            dataBean.thread!!.id!!,
+                            dataBean.forum!!.id!!,
+                            dataBean.forum.name!!,
+                            dataBean.anti!!.tbs!!,
+                            dataBean.user!!.nameShow!!,
+                            pid, spid, floorNum, replyUser, dataBean.page!!.offset
+                        ).toString()
+                    )
+            )
+        }
+
+        fun start(context: Context, dataBean: SubFloorListBean, pid: String? = null) {
+            val floor = dataBean.post!!.floor.toInt()
+            val pn = floor - floor % 30
+            context.startActivity(
+                Intent(context, ReplyActivity::class.java)
+                    .putExtra(
+                        "data", ReplyInfoBean(
+                            dataBean.thread!!.id,
+                            dataBean.forum!!.id,
+                            dataBean.forum.name,
+                            dataBean.anti!!.tbs,
+                            AccountUtil.getLoginInfo(context)!!.nameShow,
+                            pid = pid ?: dataBean.post.id,
+                            replyUser = dataBean.post.author.nameShow,
+                            floorNum = dataBean.post.floor,
+                            pn = pn.toString()
+                        ).toString()
+                    )
+            )
+        }
     }
 }

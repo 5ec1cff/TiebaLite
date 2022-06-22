@@ -68,19 +68,7 @@ public class RecyclerFloorAdapter extends BaseSingleTypeAdapter<SubFloorListBean
     public RecyclerFloorAdapter(Context context) {
         super(context, null);
         setOnItemClickListener((viewHolder, postInfo, position) -> {
-            int floor = Integer.parseInt(dataBean.getPost().getFloor());
-            int pn = floor - (floor % 30);
-            ThreadContentBean.UserInfoBean userInfoBean = postInfo.getAuthor();
-            getContext().startActivity(new Intent(getContext(), ReplyActivity.class)
-                    .putExtra("data", new ReplyInfoBean(dataBean.getThread().getId(),
-                            dataBean.getForum().getId(),
-                            dataBean.getForum().getName(),
-                            dataBean.getAnti().getTbs(),
-                            dataBean.getPost().getId(),
-                            postInfo.getId(),
-                            dataBean.getPost().getFloor(),
-                            userInfoBean != null ? userInfoBean.getNameShow() : "",
-                            AccountUtil.getLoginInfo(getContext()).getNameShow()).setPn(String.valueOf(pn)).toString()));
+            ReplyActivity.Companion.start(context, dataBean, postInfo.getId());
         });
         DisplayMetrics dm = getContext().getResources().getDisplayMetrics();
         maxWidth = (float) dm.widthPixels;
@@ -105,20 +93,7 @@ public class RecyclerFloorAdapter extends BaseSingleTypeAdapter<SubFloorListBean
                 .setOnNavigationItemSelectedListener(item -> {
                     switch (item.getItemId()) {
                         case R.id.menu_reply:
-                            int floor = Integer.parseInt(dataBean.getPost().getFloor());
-                            int pn = floor - (floor % 30);
-                            String replyData = new ReplyInfoBean(dataBean.getThread().getId(),
-                                    dataBean.getForum().getId(),
-                                    dataBean.getForum().getName(),
-                                    dataBean.getAnti().getTbs(),
-                                    dataBean.getPost().getId(),
-                                    postInfo.getId(),
-                                    dataBean.getPost().getFloor(),
-                                    userInfoBean != null ? userInfoBean.getNameShow() : "",
-                                    AccountUtil.getLoginInfo(getContext()).getNameShow()).setPn(String.valueOf(pn)).toString();
-                            Log.i(TAG, "convert: " + replyData);
-                            getContext().startActivity(new Intent(getContext(), ReplyActivity.class)
-                                    .putExtra("data", replyData));
+                            ReplyActivity.Companion.start(getContext(), dataBean, postInfo.getId());
                             return true;
                         case R.id.menu_report:
                             TiebaUtil.reportPost(getContext(), postInfo.getId());

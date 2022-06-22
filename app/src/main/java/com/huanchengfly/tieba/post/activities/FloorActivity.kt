@@ -134,18 +134,7 @@ class FloorActivity : BaseActivity() {
         if (dataBean == null) {
             return
         }
-        val floor = dataBean!!.post!!.floor.toInt()
-        val pn = floor - floor % 30
-        startActivity(Intent(this, ReplyActivity::class.java)
-                .putExtra("data",
-                        ReplyInfoBean(dataBean!!.thread!!.id,
-                                dataBean!!.forum!!.id,
-                                dataBean!!.forum!!.name,
-                                dataBean!!.anti!!.tbs,
-                                dataBean!!.post!!.id,
-                                dataBean!!.post!!.floor,
-                                dataBean!!.post!!.author.nameShow,
-                                AccountUtil.getLoginInfo(this)!!.nameShow).setPn(pn.toString()).toString()))
+        ReplyActivity.start(this, dataBean!!)
     }
 
     private fun refresh() {
