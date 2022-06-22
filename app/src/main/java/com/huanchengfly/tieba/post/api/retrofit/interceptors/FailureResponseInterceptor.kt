@@ -28,13 +28,6 @@ object FailureResponseInterceptor : Interceptor {
             it.request(Long.MAX_VALUE)
         }.buffer.clone().inputStream()
 
-        val length: Int = inputStream.available()
-        val buffer = ByteArray(length)
-        inputStream.read(buffer)
-        val bodyString = String(buffer, StandardCharsets.UTF_8)
-
-        Log.i("ResponseI", bodyString)
-
         val inputStreamReader = inputStream.reader(charset)
 
         val jsonObject = try {
