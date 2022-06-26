@@ -24,11 +24,9 @@ object FailureResponseInterceptor : Interceptor {
             contentType.charset(Charsets.UTF_8)!!
         }
 
-        val inputStream = body.source().also {
+        val inputStreamReader = body.source().also {
             it.request(Long.MAX_VALUE)
-        }.buffer.clone().inputStream()
-
-        val inputStreamReader = inputStream.reader(charset)
+        }.buffer.clone().inputStream().reader(charset)
 
         val jsonObject = try {
             gson.fromJson<CommonResponse>(

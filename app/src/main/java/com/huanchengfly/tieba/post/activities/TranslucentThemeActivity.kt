@@ -57,7 +57,8 @@ import kotlinx.coroutines.Dispatchers.IO
 import kotlinx.coroutines.launch
 import java.io.File
 
-class TranslucentThemeActivity : BaseActivity(), View.OnClickListener, OnSeekBarChangeListener, ColorPickerDialogListener {
+class TranslucentThemeActivity : BaseActivity(), View.OnClickListener, OnSeekBarChangeListener,
+    ColorPickerDialogListener {
     private var mUri: Uri? = null
     private var alpha = 0
     private var blur = 0
@@ -204,39 +205,43 @@ class TranslucentThemeActivity : BaseActivity(), View.OnClickListener, OnSeekBar
     private fun refreshBackground() {
         mProgress.visibility = View.VISIBLE
         if (mUri == null) {
-            findViewById(R.id.background).setBackgroundColor(Color.BLACK)
+            findViewById<View>(R.id.background).setBackgroundColor(Color.BLACK)
             mProgress.visibility = View.GONE
             return
         }
         var bgOptions = RequestOptions.centerCropTransform()
             .skipMemoryCache(true)
-                .diskCacheStrategy(DiskCacheStrategy.NONE)
+            .diskCacheStrategy(DiskCacheStrategy.NONE)
         if (blur > 0) {
             bgOptions = bgOptions.transform(BlurTransformation(blur))
         }
         Glide.with(this)
-                .asDrawable()
-                .load(mUri)
-                .apply(bgOptions)
-                .into(object : CustomTarget<Drawable>() {
-                    override fun onResourceReady(resource: Drawable, transition: Transition<in Drawable>?) {
-                        resource.alpha = alpha
-                        val bitmap = ImageUtil.drawableToBitmap(resource)
-                        findViewById(R.id.background).background = BitmapDrawable(resources, bitmap)
-                        mPalette = Palette.from(bitmap).generate()
-                        mTranslucentThemeColorAdapter.setPalette(mPalette)
-                        mSelectColor.visibility = View.VISIBLE
-                        mProgress.visibility = View.GONE
-                    }
+            .asDrawable()
+            .load(mUri)
+            .apply(bgOptions)
+            .into(object : CustomTarget<Drawable>() {
+                override fun onResourceReady(
+                    resource: Drawable,
+                    transition: Transition<in Drawable>?
+                ) {
+                    resource.alpha = alpha
+                    val bitmap = ImageUtil.drawableToBitmap(resource)
+                    findViewById<View>(R.id.background).background =
+                        BitmapDrawable(resources, bitmap)
+                    mPalette = Palette.from(bitmap).generate()
+                    mTranslucentThemeColorAdapter.setPalette(mPalette)
+                    mSelectColor.visibility = View.VISIBLE
+                    mProgress.visibility = View.GONE
+                }
 
-                    override fun onLoadCleared(placeholder: Drawable?) {}
-                })
+                override fun onLoadCleared(placeholder: Drawable?) {}
+            })
     }
 
     override fun refreshStatusBarColor() {
         ImmersionBar.with(this)
-                .transparentBar()
-                .init()
+            .transparentBar()
+            .init()
     }
 
     override fun getLayoutId(): Int {
@@ -291,7 +296,7 @@ class TranslucentThemeActivity : BaseActivity(), View.OnClickListener, OnSeekBar
                 appPreferences.translucentPrimaryColor = toString(themeColor)
                 ThemeUtils.refreshUI(this)
             }
-        (findViewById(R.id.select_color_recycler_view) as RecyclerView).apply {
+        (findViewById<RecyclerView>(R.id.select_color_recycler_view)).apply {
             addItemDecoration(HorizontalSpacesDecoration(0, 0, 12.dpToPx(), 12.dpToPx(), false))
             layoutManager = MyLinearLayoutManager(
                 this@TranslucentThemeActivity,
@@ -302,11 +307,11 @@ class TranslucentThemeActivity : BaseActivity(), View.OnClickListener, OnSeekBar
         }
         alpha = appPreferences.translucentBackgroundAlpha
         blur = appPreferences.translucentBackgroundBlur
-        (findViewById(R.id.alpha) as SeekBar).apply {
+        (findViewById<SeekBar>(R.id.alpha)).apply {
             progress = this@TranslucentThemeActivity.alpha
             setOnSeekBarChangeListener(this@TranslucentThemeActivity)
         }
-        (findViewById(R.id.blur) as SeekBar).apply {
+        (findViewById<SeekBar>(R.id.blur)).apply {
             progress = this@TranslucentThemeActivity.blur
             setOnSeekBarChangeListener(this@TranslucentThemeActivity)
         }
@@ -369,28 +374,34 @@ class TranslucentThemeActivity : BaseActivity(), View.OnClickListener, OnSeekBar
     private fun savePic(callback: SavePicCallback<File>) {
         mProgress.visibility = View.VISIBLE
         var bgOptions = RequestOptions.centerCropTransform()
-                .skipMemoryCache(true)
-                .diskCacheStrategy(DiskCacheStrategy.NONE)
+            .skipMemoryCache(true)
+            .diskCacheStrategy(DiskCacheStrategy.NONE)
         if (blur > 0) {
             bgOptions = bgOptions.transform(BlurTransformation(blur))
         }
         Glide.with(this)
-                .asDrawable()
-                .load(mUri)
-                .apply(bgOptions)
-                .into(object : CustomTarget<Drawable>() {
-                    override fun onResourceReady(resource: Drawable, transition: Transition<in Drawable>?) {
-                        resource.alpha = alpha
-                        val bitmap = ImageUtil.drawableToBitmap(resource)
-                        val file = ImageUtil.compressImage(bitmap, File(filesDir, "background.jpg"))
-                        mPalette = Palette.from(bitmap).generate()
-                        appPreferences.translucentThemeBackgroundPath = file.absolutePath
-                        ThemeUtils.refreshUI(this@TranslucentThemeActivity, this@TranslucentThemeActivity)
-                        callback.onSuccess(file)
-                    }
+            .asDrawable()
+            .load(mUri)
+            .apply(bgOptions)
+            .into(object : CustomTarget<Drawable>() {
+                override fun onResourceReady(
+                    resource: Drawable,
+                    transition: Transition<in Drawable>?
+                ) {
+                    resource.alpha = alpha
+                    val bitmap = ImageUtil.drawableToBitmap(resource)
+                    val file = ImageUtil.compressImage(bitmap, File(filesDir, "background.jpg"))
+                    mPalette = Palette.from(bitmap).generate()
+                    appPreferences.translucentThemeBackgroundPath = file.absolutePath
+                    ThemeUtils.refreshUI(
+                        this@TranslucentThemeActivity,
+                        this@TranslucentThemeActivity
+                    )
+                    callback.onSuccess(file)
+                }
 
-                    override fun onLoadCleared(placeholder: Drawable?) {}
-                })
+                override fun onLoadCleared(placeholder: Drawable?) {}
+            })
     }
 
     private fun invalidateFinishBtn() {
@@ -417,11 +428,19 @@ class TranslucentThemeActivity : BaseActivity(), View.OnClickListener, OnSeekBar
                 darkColorBtn.setBackgroundTintResId(R.color.default_color_accent)
                 darkColorBtn.setTextColorResId(R.color.white)
                 darkColorBtn.setCompoundDrawablesRelativeWithIntrinsicBounds(
-                        ContextCompat.getDrawable(this, R.drawable.ic_round_check_circle), null, null, null
+                    ContextCompat.getDrawable(this, R.drawable.ic_round_check_circle),
+                    null,
+                    null,
+                    null
                 )
                 lightColorBtn.setBackgroundTintResId(R.color.color_divider)
                 lightColorBtn.setTextColorResId(R.color.color_text_secondary)
-                lightColorBtn.setCompoundDrawablesRelativeWithIntrinsicBounds(null, null, null, null)
+                lightColorBtn.setCompoundDrawablesRelativeWithIntrinsicBounds(
+                    null,
+                    null,
+                    null,
+                    null
+                )
             }
             TRANSLUCENT_THEME_LIGHT -> {
                 darkColorBtn.setBackgroundTintResId(R.color.color_divider)
@@ -430,7 +449,10 @@ class TranslucentThemeActivity : BaseActivity(), View.OnClickListener, OnSeekBar
                 lightColorBtn.setBackgroundTintResId(R.color.default_color_accent)
                 lightColorBtn.setTextColorResId(R.color.white)
                 lightColorBtn.setCompoundDrawablesRelativeWithIntrinsicBounds(
-                        ContextCompat.getDrawable(this, R.drawable.ic_round_check_circle), null, null, null
+                    ContextCompat.getDrawable(this, R.drawable.ic_round_check_circle),
+                    null,
+                    null,
+                    null
                 )
             }
         }
@@ -465,13 +487,13 @@ class TranslucentThemeActivity : BaseActivity(), View.OnClickListener, OnSeekBar
             }
             R.id.custom_color -> {
                 val primaryColorPicker = ColorPickerDialog.newBuilder()
-                        .setDialogTitle(R.string.title_color_picker_primary)
-                        .setDialogType(ColorPickerDialog.TYPE_CUSTOM)
-                        .setShowAlphaSlider(true)
-                        .setDialogId(0)
-                        .setAllowPresets(false)
-                        .setColor(ThemeUtils.getColorById(this, R.color.default_color_primary))
-                        .create()
+                    .setDialogTitle(R.string.title_color_picker_primary)
+                    .setDialogType(ColorPickerDialog.TYPE_CUSTOM)
+                    .setShowAlphaSlider(true)
+                    .setDialogId(0)
+                    .setAllowPresets(false)
+                    .setColor(ThemeUtils.getColorById(this, R.color.default_color_primary))
+                    .create()
                 primaryColorPicker.setColorPickerDialogListener(this)
                 primaryColorPicker.show(fragmentManager, "ColorPicker_TranslucentThemePrimaryColor")
             }
@@ -535,7 +557,12 @@ class TranslucentThemeActivity : BaseActivity(), View.OnClickListener, OnSeekBar
         }
 
         fun toString(@ColorInt color: Int): String {
-            return toString(Color.alpha(color), Color.red(color), Color.green(color), Color.blue(color))
+            return toString(
+                Color.alpha(color),
+                Color.red(color),
+                Color.green(color),
+                Color.blue(color)
+            )
         }
     }
 }

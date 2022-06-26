@@ -9,19 +9,16 @@ import androidx.annotation.NonNull;
 
 import com.huanchengfly.tieba.post.R;
 import com.huanchengfly.tieba.post.ui.theme.utils.ThemeUtils;
-import com.huanchengfly.tieba.post.utils.NavigationHelper;
 import com.huanchengfly.tieba.post.utils.UtilsKt;
 
 public class MyURLSpan extends ClickableSpan {
     public String url;
-    private Context context;
-    private NavigationHelper navigationHelper;
+    private final Context context;
 
     public MyURLSpan(Context context, String url) {
         super();
         this.url = url;
         this.context = context;
-        this.navigationHelper = NavigationHelper.newInstance(context);
     }
 
     @Override
@@ -33,7 +30,6 @@ public class MyURLSpan extends ClickableSpan {
 
     @Override
     public void onClick(@NonNull View view) {
-        // UtilsKt.launchUrl(context, url);
-        navigationHelper.navigationByData(NavigationHelper.ACTION_URL, this.url);
+        UtilsKt.launchUrl(context, url);
     }
 }

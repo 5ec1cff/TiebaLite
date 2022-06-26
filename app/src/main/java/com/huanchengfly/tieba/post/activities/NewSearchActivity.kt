@@ -10,14 +10,11 @@ import android.view.inputmethod.EditorInfo
 import android.widget.EditText
 import android.widget.ImageView
 import android.widget.LinearLayout
-import android.widget.TextView
-import androidx.core.widget.TextViewCompat
 import androidx.recyclerview.widget.RecyclerView
 import butterknife.BindView
 import cn.dreamtobe.kpswitch.util.KeyboardUtil
 import com.alibaba.android.vlayout.DelegateAdapter
 import com.alibaba.android.vlayout.VirtualLayoutManager
-import com.alibaba.android.vlayout.layout.LinearLayoutHelper
 import com.google.android.material.tabs.TabLayout
 import com.google.android.material.textfield.TextInputLayout
 import com.huanchengfly.tieba.post.R
@@ -26,8 +23,6 @@ import com.huanchengfly.tieba.post.adapters.HeaderDelegateAdapter
 import com.huanchengfly.tieba.post.adapters.HeaderDelegateAdapter.Companion.NO_ICON
 import com.huanchengfly.tieba.post.adapters.SearchHistoryAdapter
 import com.huanchengfly.tieba.post.adapters.SingleLayoutDelegateAdapter
-import com.huanchengfly.tieba.post.adapters.base.BaseSingleTypeDelegateAdapter
-import com.huanchengfly.tieba.post.api.models.web.HotMessageListBean
 import com.huanchengfly.tieba.post.components.AutoLineFeedLayoutManager
 import com.huanchengfly.tieba.post.components.MyViewHolder
 import com.huanchengfly.tieba.post.components.dividers.SpacesItemDecoration
@@ -35,16 +30,13 @@ import com.huanchengfly.tieba.post.dpToPx
 import com.huanchengfly.tieba.post.fragments.SearchForumFragment
 import com.huanchengfly.tieba.post.fragments.SearchThreadFragment
 import com.huanchengfly.tieba.post.fragments.SearchUserFragment
-import com.huanchengfly.tieba.post.getColorCompat
 import com.huanchengfly.tieba.post.interfaces.ISearchFragment
 import com.huanchengfly.tieba.post.models.database.SearchHistory
 import com.huanchengfly.tieba.post.toastShort
 import com.huanchengfly.tieba.post.ui.theme.utils.ColorStateListUtils
 import com.huanchengfly.tieba.post.utils.AnimUtil
-import com.huanchengfly.tieba.post.utils.NavigationHelper
 import com.huanchengfly.tieba.post.utils.ThemeUtil
 import com.huanchengfly.tieba.post.utils.anim.animSet
-import com.huanchengfly.tieba.post.utils.getIntermixedColorBackground
 import com.huanchengfly.tieba.post.widgets.MyViewPager
 import org.litepal.LitePal
 
@@ -69,14 +61,12 @@ class NewSearchActivity : BaseActivity(), TabLayout.OnTabSelectedListener {
     @BindView(R.id.bottom_app_bar)
     lateinit var bottomAppBar: View
 
-    var hotMessageListBean: HotMessageListBean? = null
-
     private var keyword: String? = null
         set(value) {
             field = value
             if (value != null) {
                 SearchHistory(value)
-                        .saveOrUpdate("content = ?", value)
+                    .saveOrUpdate("content = ?", value)
             }
             state = if (value == null) {
                 State.INPUT
@@ -92,7 +82,8 @@ class NewSearchActivity : BaseActivity(), TabLayout.OnTabSelectedListener {
                 }
             }
         }
-    private val fragmentAdapter: FragmentTabViewPagerAdapter = FragmentTabViewPagerAdapter(supportFragmentManager)
+    private val fragmentAdapter: FragmentTabViewPagerAdapter =
+        FragmentTabViewPagerAdapter(supportFragmentManager)
     private val virtualLayoutManager: VirtualLayoutManager = VirtualLayoutManager(this)
     private val delegateAdapter: DelegateAdapter = DelegateAdapter(virtualLayoutManager)
 
@@ -101,9 +92,18 @@ class NewSearchActivity : BaseActivity(), TabLayout.OnTabSelectedListener {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         ThemeUtil.setTranslucentThemeBackground(findViewById(R.id.background))
-        fragmentAdapter.addFragment(SearchForumFragment.newInstance(), getString(R.string.title_search_forum))
-        fragmentAdapter.addFragment(SearchThreadFragment.newInstance(), getString(R.string.title_search_thread))
-        fragmentAdapter.addFragment(SearchUserFragment.newInstance(), getString(R.string.title_search_user))
+        fragmentAdapter.addFragment(
+            SearchForumFragment.newInstance(),
+            getString(R.string.title_search_forum)
+        )
+        fragmentAdapter.addFragment(
+            SearchThreadFragment.newInstance(),
+            getString(R.string.title_search_thread)
+        )
+        fragmentAdapter.addFragment(
+            SearchUserFragment.newInstance(),
+            getString(R.string.title_search_user)
+        )
         viewPager.adapter = fragmentAdapter
         viewPager.offscreenPageLimit = 3
         tabLayout.setupWithViewPager(viewPager)
@@ -154,10 +154,10 @@ class NewSearchActivity : BaseActivity(), TabLayout.OnTabSelectedListener {
         delegateAdapter.clear()
         LitePal.order("timestamp DESC").findAsync(SearchHistory::class.java).listen { histories ->
             delegateAdapter.addAdapter(HeaderDelegateAdapter(
-                    this,
-                    R.string.title_search_history,
-                    R.drawable.ic_round_keyboard,
-                    if (histories.size > 0) R.drawable.ic_round_delete else NO_ICON
+                this,
+                R.string.title_search_history,
+                R.drawable.ic_round_keyboard,
+                if (histories.size > 0) R.drawable.ic_round_delete else NO_ICON
             ).apply {
                 setHeaderBackgroundResource(R.drawable.bg_top_radius_8dp)
                 headerBackgroundTintList = R.color.default_color_card
@@ -201,30 +201,31 @@ class NewSearchActivity : BaseActivity(), TabLayout.OnTabSelectedListener {
     }
 
     inner class SearchHistoryDelegateAdapter(
-            val data: List<SearchHistory>? = null
+        val data: List<SearchHistory>? = null
     ) : SingleLayoutDelegateAdapter(
-            this,
-            {
-                val parentLayout = LinearLayout(this).apply {
-                    orientation = LinearLayout.VERTICAL
-                    layoutParams = RecyclerView.LayoutParams(MATCH_PARENT, WRAP_CONTENT)
-                    setPadding(16.dpToPx(), 8.dpToPx(), 8.dpToPx(), 8.dpToPx())
-                    setBackgroundResource(R.drawable.bg_bottom_radius_8dp)
-                    backgroundTintList = ColorStateListUtils.createColorStateList(context, R.color.default_color_card)
-                }
-                RecyclerView(this).apply {
-                    id = R.id.recyclerview
-                    addItemDecoration(SpacesItemDecoration(0, 0, 8.dpToPx(), 8.dpToPx()))
-                }.also {
-                    parentLayout.addView(it)
-                }
-                View.inflate(this, R.layout.layout_no_data, null).apply {
-                    id = R.id.no_data
-                }.also {
-                    parentLayout.addView(it)
-                }
-                parentLayout
+        this,
+        {
+            val parentLayout = LinearLayout(this).apply {
+                orientation = LinearLayout.VERTICAL
+                layoutParams = RecyclerView.LayoutParams(MATCH_PARENT, WRAP_CONTENT)
+                setPadding(16.dpToPx(), 8.dpToPx(), 8.dpToPx(), 8.dpToPx())
+                setBackgroundResource(R.drawable.bg_bottom_radius_8dp)
+                backgroundTintList =
+                    ColorStateListUtils.createColorStateList(context, R.color.default_color_card)
             }
+            RecyclerView(this).apply {
+                id = R.id.recyclerview
+                addItemDecoration(SpacesItemDecoration(0, 0, 8.dpToPx(), 8.dpToPx()))
+            }.also {
+                parentLayout.addView(it)
+            }
+            View.inflate(this, R.layout.layout_no_data, null).apply {
+                id = R.id.no_data
+            }.also {
+                parentLayout.addView(it)
+            }
+            parentLayout
+        }
     ) {
         val adapter: SearchHistoryAdapter = SearchHistoryAdapter(context).apply {
             setData(data)
@@ -256,51 +257,6 @@ class NewSearchActivity : BaseActivity(), TabLayout.OnTabSelectedListener {
                 viewHolder.getView<View>(R.id.no_data).apply {
                     visibility = View.GONE
                 }
-            }
-        }
-    }
-
-    inner class HotTopicDelegateAdapter(
-            list: List<HotMessageListBean.HotMessageRetBean>? = null
-    ) : BaseSingleTypeDelegateAdapter<HotMessageListBean.HotMessageRetBean>(
-            this,
-            LinearLayoutHelper(),
-            list
-    ) {
-        override fun convert(viewHolder: MyViewHolder, item: HotMessageListBean.HotMessageRetBean, position: Int) {
-            viewHolder.setText(R.id.hot_order, "${position + 1}")
-            viewHolder.setText(R.id.hot_title, item.mulName)
-            viewHolder.setText(R.id.hot_desc, item.topicInfo.topicDesc)
-            val textView = viewHolder.getView<TextView>(R.id.hot_order)
-            if (position > 2) {
-                TextViewCompat.setTextAppearance(textView, R.style.TextAppearance_Bold)
-                textView.setTextColor(context.getColorCompat(R.color.tieba))
-            } else {
-                TextViewCompat.setTextAppearance(textView, R.style.TextAppearance_Bold_Italic)
-                textView.setTextColor(context.getColorCompat(R.color.red_accent))
-            }
-            viewHolder.setVisibility(R.id.hot_desc, View.GONE)
-            viewHolder.itemView.background = getIntermixedColorBackground(
-                    context,
-                    position,
-                    itemCount,
-                    positionOffset = 1,
-                    colors = intArrayOf(R.color.default_color_card, R.color.default_color_divider),
-                    radius = context.resources.getDimension(R.dimen.card_radius)
-            )
-        }
-
-        override fun getItemLayoutId(): Int {
-            return R.layout.item_hot_message_list
-        }
-
-        init {
-            val navigationHelper = NavigationHelper.newInstance(context)
-            setOnItemClickListener { _, item, _ ->
-                navigationHelper.navigationByData(
-                        NavigationHelper.ACTION_URL,
-                        "https://tieba.baidu.com/mo/q/hotMessage?topic_id=${item.mulId}&topic_name=${item.mulName}"
-                )
             }
         }
     }

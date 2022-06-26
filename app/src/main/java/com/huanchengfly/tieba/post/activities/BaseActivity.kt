@@ -23,6 +23,7 @@ import androidx.annotation.CallSuper
 import androidx.annotation.ColorInt
 import androidx.annotation.Keep
 import androidx.appcompat.app.AlertDialog
+import androidx.appcompat.app.AppCompatActivity
 import androidx.appcompat.widget.Toolbar
 import butterknife.ButterKnife
 import cn.jzvd.Jzvd
@@ -30,16 +31,16 @@ import com.gyf.immersionbar.ImmersionBar
 import com.huanchengfly.tieba.post.BaseApplication
 import com.huanchengfly.tieba.post.BaseApplication.Companion.instance
 import com.huanchengfly.tieba.post.R
+import com.huanchengfly.tieba.post.ui.slideback.SlideBack
 import com.huanchengfly.tieba.post.ui.theme.interfaces.ExtraRefreshable
 import com.huanchengfly.tieba.post.ui.theme.utils.ThemeUtils
 import com.huanchengfly.tieba.post.utils.*
 import com.huanchengfly.tieba.post.widgets.VoicePlayerView
 import com.huanchengfly.tieba.post.widgets.theme.TintToolbar
 import kotlinx.coroutines.*
-import me.imid.swipebacklayout.lib.app.SwipeBackActivity
 import kotlin.coroutines.CoroutineContext
 
-abstract class BaseActivity : SwipeBackActivity(), ExtraRefreshable, CoroutineScope {
+abstract class BaseActivity : AppCompatActivity(), ExtraRefreshable, CoroutineScope {
     val job = Job()
     override val coroutineContext: CoroutineContext
         get() = Dispatchers.Main + job
@@ -99,6 +100,8 @@ abstract class BaseActivity : SwipeBackActivity(), ExtraRefreshable, CoroutineSc
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        SlideBack.create()
+            .attachToActivity(this)
         fixBackground()
         getDeviceDensity()
         instance.addActivity(this)
@@ -126,8 +129,9 @@ abstract class BaseActivity : SwipeBackActivity(), ExtraRefreshable, CoroutineSc
 
     fun refreshUIIfNeed() {
         if (TextUtils.equals(oldTheme, ThemeUtil.getTheme(this)) &&
-                ThemeUtil.THEME_CUSTOM != ThemeUtil.getTheme(this) &&
-                !ThemeUtil.isTranslucentTheme(this)) {
+            ThemeUtil.THEME_CUSTOM != ThemeUtil.getTheme(this) &&
+            !ThemeUtil.isTranslucentTheme(this)
+        ) {
             return
         }
         if (recreateIfNeed()) {
@@ -141,10 +145,18 @@ abstract class BaseActivity : SwipeBackActivity(), ExtraRefreshable, CoroutineSc
         isActivityRunning = true
         if (appPreferences.followSystemNight) {
             if (BaseApplication.isSystemNight && !ThemeUtil.isNightMode(this)) {
-                SharedPreferencesUtil.put(ThemeUtil.getSharedPreferences(this), MainActivity.SP_SHOULD_SHOW_SNACKBAR, true)
+                SharedPreferencesUtil.put(
+                    ThemeUtil.getSharedPreferences(this),
+                    MainActivity.SP_SHOULD_SHOW_SNACKBAR,
+                    true
+                )
                 ThemeUtil.switchToNightMode(this, false)
             } else if (!BaseApplication.isSystemNight && ThemeUtil.isNightMode(this)) {
-                SharedPreferencesUtil.put(ThemeUtil.getSharedPreferences(this), MainActivity.SP_SHOULD_SHOW_SNACKBAR, true)
+                SharedPreferencesUtil.put(
+                    ThemeUtil.getSharedPreferences(this),
+                    MainActivity.SP_SHOULD_SHOW_SNACKBAR,
+                    true
+                )
                 ThemeUtil.switchFromNightMode(this, false)
             }
         }
@@ -221,14 +233,16 @@ abstract class BaseActivity : SwipeBackActivity(), ExtraRefreshable, CoroutineSc
     }
 
     protected fun colorAnim(view: ImageView, vararg value: Int): ValueAnimator {
-        val animator: ValueAnimator = ObjectAnimator.ofArgb(ImageViewAnimWrapper(view), "tint", *value)
+        val animator: ValueAnimator =
+            ObjectAnimator.ofArgb(ImageViewAnimWrapper(view), "tint", *value)
         animator.duration = 150
         animator.interpolator = AccelerateDecelerateInterpolator()
         return animator
     }
 
     protected fun colorAnim(view: TextView, vararg value: Int): ValueAnimator {
-        val animator: ValueAnimator = ObjectAnimator.ofArgb(TextViewAnimWrapper(view), "textColor", *value)
+        val animator: ValueAnimator =
+            ObjectAnimator.ofArgb(TextViewAnimWrapper(view), "textColor", *value)
         animator.duration = 150
         animator.interpolator = AccelerateDecelerateInterpolator()
         return animator
@@ -245,19 +259,32 @@ abstract class BaseActivity : SwipeBackActivity(), ExtraRefreshable, CoroutineSc
     open fun refreshStatusBarColor() {
         if (ThemeUtil.isTranslucentTheme(this)) {
             ImmersionBar.with(this)
-                    .transparentBar()
-                    .init()
+                .transparentBar()
+                .init()
         } else {
             ImmersionBar.with(this).apply {
                 if (customStatusColor != -1) {
                     statusBarColorInt(customStatusColor)
                     autoStatusBarDarkModeEnable(true)
                 } else {
-                    statusBarColorInt(calcStatusBarColor(this@BaseActivity, ThemeUtils.getColorByAttr(this@BaseActivity, R.attr.colorToolbar)))
+                    statusBarColorInt(
+                        calcStatusBarColor(
+                            this@BaseActivity,
+                            ThemeUtils.getColorByAttr(this@BaseActivity, R.attr.colorToolbar)
+                        )
+                    )
                     statusBarDarkFont(ThemeUtil.isStatusBarFontDark(this@BaseActivity))
                 }
-                fitsSystemWindowsInt(true, ThemeUtils.getColorByAttr(this@BaseActivity, R.attr.colorBg))
-                navigationBarColorInt(ThemeUtils.getColorByAttr(this@BaseActivity, R.attr.colorNavBar))
+                fitsSystemWindowsInt(
+                    true,
+                    ThemeUtils.getColorByAttr(this@BaseActivity, R.attr.colorBg)
+                )
+                navigationBarColorInt(
+                    ThemeUtils.getColorByAttr(
+                        this@BaseActivity,
+                        R.attr.colorNavBar
+                    )
+                )
                 navigationBarDarkIcon(ThemeUtil.isNavigationBarFontDark(this@BaseActivity))
             }.init()
         }
@@ -276,12 +303,16 @@ abstract class BaseActivity : SwipeBackActivity(), ExtraRefreshable, CoroutineSc
 
     private fun recreateIfNeed(): Boolean {
         if (ThemeUtil.isNightMode(this) && !ThemeUtil.isNightMode(oldTheme) ||
-                !ThemeUtil.isNightMode(this) && ThemeUtil.isNightMode(oldTheme)) {
+            !ThemeUtil.isNightMode(this) && ThemeUtil.isNightMode(oldTheme)
+        ) {
             recreate()
             return true
         }
-        if (oldTheme?.contains(ThemeUtil.THEME_TRANSLUCENT) == true && !ThemeUtil.isTranslucentTheme(this) ||
-                ThemeUtil.isTranslucentTheme(this) && oldTheme?.contains(ThemeUtil.THEME_TRANSLUCENT) == false) {
+        if (oldTheme?.contains(ThemeUtil.THEME_TRANSLUCENT) == true && !ThemeUtil.isTranslucentTheme(
+                this
+            ) ||
+            ThemeUtil.isTranslucentTheme(this) && oldTheme?.contains(ThemeUtil.THEME_TRANSLUCENT) == false
+        ) {
             recreate()
             return true
         }

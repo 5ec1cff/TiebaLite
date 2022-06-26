@@ -41,7 +41,8 @@ import retrofit2.Callback
 import retrofit2.Response
 import kotlin.math.roundToInt
 
-class ThreadReplyAdapter(context: Context) : BaseSingleTypeDelegateAdapter<PostListItemBean>(context, LinearLayoutHelper()) {
+class ThreadReplyAdapter(context: Context) :
+    BaseSingleTypeDelegateAdapter<PostListItemBean>(context, LinearLayoutHelper()) {
     private var userInfoBeanMap: MutableMap<String?, ThreadContentBean.UserInfoBean?> = HashMap()
     private val defaultLayoutParamsWithNoMargins: LinearLayout.LayoutParams
     private var threadBean: ThreadContentBean.ThreadBean? = null
@@ -104,20 +105,29 @@ class ThreadReplyAdapter(context: Context) : BaseSingleTypeDelegateAdapter<PostL
         val builder = SpannableStringBuilder()
         val userInfoBean = userInfoBeanMap[subPostListItemBean.authorId]
         if (userInfoBean != null) {
-            builder.append(userInfoBean.nameShow, MyUserSpan(context, userInfoBean.id), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE)
+            builder.append(
+                userInfoBean.nameShow,
+                MyUserSpan(context, userInfoBean.id),
+                Spanned.SPAN_EXCLUSIVE_EXCLUSIVE
+            )
             if (threadBean!!.author != null && userInfoBean.id != null && userInfoBean.id == threadBean!!.author!!.id) {
                 builder.append(" ")
-                builder.append("楼主", RoundBackgroundColorSpan(context,
+                builder.append(
+                    "楼主", RoundBackgroundColorSpan(
+                        context,
                         Util.alphaColor(ThemeUtils.getColorByAttr(context, R.attr.colorAccent), 30),
                         ThemeUtils.getColorByAttr(context, R.attr.colorAccent),
-                        DisplayUtil.dp2px(context, 10f).toFloat()), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE)
+                        DisplayUtil.dp2px(context, 10f).toFloat()
+                    ), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE
+                )
                 builder.append(" ")
             }
             builder.append(":")
         }
         val contentView: View
         if (subPostListItemBean.content!!.isNotEmpty() && "10" == subPostListItemBean.content[0].type) {
-            val voiceUrl = "http://c.tieba.baidu.com/c/p/voice?voice_md5=" + subPostListItemBean.content[0].voiceMD5 + "&play_from=pb_voice_play"
+            val voiceUrl =
+                "http://c.tieba.baidu.com/c/p/voice?voice_md5=" + subPostListItemBean.content[0].voiceMD5 + "&play_from=pb_voice_play"
             val container = RelativeLayout(context)
             container.layoutParams = defaultLayoutParamsWithNoMargins
             View.inflate(context, R.layout.layout_floor_audio, container)
@@ -133,7 +143,6 @@ class ThreadReplyAdapter(context: Context) : BaseSingleTypeDelegateAdapter<PostL
             textView.layoutParams = defaultLayoutParamsWithNoMargins
             val paint = textView.paint
             val size = (-paint.ascent() + paint.descent()).roundToInt()
-            val emotionsToAdd = mutableSetOf<String>()
             for (contentBean in subPostListItemBean.content) {
                 when (contentBean.type) {
                     "0" -> {
@@ -153,7 +162,10 @@ class ThreadReplyAdapter(context: Context) : BaseSingleTypeDelegateAdapter<PostL
                     "2" -> {
                         val emojiText = "#(" + contentBean.c + ")"
                         val emotionName = contentBean.text!!
-                        emotionsToAdd.add(emotionName)
+                        EmotionManager.registerEmotion(
+                            contentBean.text!!,
+                            contentBean.c!!
+                        )
                         builder.append(
                             emojiText,
                             EmotionSpanV2(emotionName, context).apply { this.size = size },
@@ -165,8 +177,6 @@ class ThreadReplyAdapter(context: Context) : BaseSingleTypeDelegateAdapter<PostL
                     }
                 }
             }
-            EmotionManager.preloadEmotionsForView(emotionsToAdd, context, textView)
-            // textView.text = replaceVideoNumberSpan(context, StringUtil.getEmotionContent(EmotionUtil.EMOTION_ALL_TYPE, textView, builder))
             textView.text = replaceVideoNumberSpan(context, builder)
             contentView = textView
         }
@@ -221,7 +231,10 @@ class ThreadReplyAdapter(context: Context) : BaseSingleTypeDelegateAdapter<PostL
                     holder.setVisibility(R.id.thread_list_item_content_floor_more, View.GONE)
                 }
             }
-            more.text = context.getString(R.string.tip_floor_more_count, (count - subPostList.size).toString())
+            more.text = context.getString(
+                R.string.tip_floor_more_count,
+                (count - subPostList.size).toString()
+            )
             for (postListItemBean in subPostList) {
                 views.add(getContentViewForSubPosts(postListItemBean, bean))
             }
@@ -309,7 +322,31 @@ class ThreadReplyAdapter(context: Context) : BaseSingleTypeDelegateAdapter<PostL
             showMenu(item, position)
             true
         }
-        viewHolder.setText(R.id.thread_list_item_user_name, if (userInfoBean == null) item.authorId else StringUtil.getUsernameString(context, userInfoBean.name, userInfoBean.nameShow))
+
+        var username: CharSequence =
+            if (userInfoBean == null) item.authorId ?: "" else StringUtil.getUsernameString(
+                context,
+                userInfoBean.name,
+                userInfoBean.nameShow
+            )
+        if (userInfoBean != null && userInfoBean.isBawu == "1") {
+            val bawuType = if (userInfoBean.bawuType == "manager") "吧主" else "小吧主"
+            username = SpannableStringBuilder(username).apply {
+                append(" ")
+                append(
+                    bawuType, RoundBackgroundColorSpan(
+                        context,
+                        Util.alphaColor(ThemeUtils.getColorByAttr(context, R.attr.colorAccent), 30),
+                        ThemeUtils.getColorByAttr(context, R.attr.colorAccent),
+                        DisplayUtil.dp2px(context, 10f).toFloat()
+                    ), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE
+                )
+            }
+        }
+        viewHolder.setText(
+            R.id.thread_list_item_user_name,
+            username
+        )
         if (userInfoBean != null) {
             val levelId =
                 if (userInfoBean.levelId == null || TextUtils.isEmpty(userInfoBean.levelId)) "?" else userInfoBean.levelId
@@ -335,14 +372,18 @@ class ThreadReplyAdapter(context: Context) : BaseSingleTypeDelegateAdapter<PostL
             )
         }
         initContentView(viewHolder, item)
+        var timeText = context.getString(
+            R.string.tip_thread_item,
+            item.floor,
+            getRelativeTimeString(context, item.time!!)
+        )
+        if (userInfoBean?.ipAddress?.isNotEmpty() == true) {
+            timeText += " "
+            timeText += context.getString(R.string.text_ip_location, userInfoBean.ipAddress)
+        }
         viewHolder.setText(
             R.id.thread_list_item_user_time,
-            context.getString(
-                R.string.tip_thread_item,
-                item.floor,
-                getRelativeTimeString(context, item.time!!),
-                userInfoBean?.ipAddress
-            )
+            timeText
         )
         initFloorView(viewHolder, item)
         if (isPureRead) {
@@ -368,22 +409,19 @@ class ThreadReplyAdapter(context: Context) : BaseSingleTypeDelegateAdapter<PostL
             }
             viewHolder.setVisibility(R.id.thread_list_item_user, View.VISIBLE)
         }
-        viewHolder.setText(R.id.thread_list_item_agree_btn, if (item.agree?.diffAgreeNum != "0") {
-            context.getString(R.string.btn_agree_post, item.agree?.diffAgreeNum)
-        } else {
-            context.getString(R.string.btn_agree_post_default)
-        })
-        viewHolder.setText(R.id.thread_list_item_reply_btn, if (item.subPostNumber != "0") {
-            context.getString(R.string.btn_reply_post, item.subPostNumber)
-        } else {
-            context.getString(R.string.btn_reply_post_default)
-        })
+        viewHolder.setText(
+            R.id.thread_list_item_agree_btn, if (item.agree?.diffAgreeNum != "0") {
+                context.getString(R.string.btn_agree_post, item.agree?.diffAgreeNum)
+            } else {
+                context.getString(R.string.btn_agree_post_default)
+            }
+        )
         viewHolder.itemView.background = getItemBackgroundDrawable(
-                context,
-                position,
-                itemCount,
-                positionOffset = 1,
-                radius = 16f.dpToPxFloat()
+            context,
+            position,
+            itemCount,
+            positionOffset = 1,
+            radius = 16f.dpToPxFloat()
         )
     }
 
@@ -455,6 +493,9 @@ class ThreadReplyAdapter(context: Context) : BaseSingleTypeDelegateAdapter<PostL
             }
         })
         helper = PostListAdapterHelper(context)
-        defaultLayoutParamsWithNoMargins = LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT)
+        defaultLayoutParamsWithNoMargins = LinearLayout.LayoutParams(
+            ViewGroup.LayoutParams.MATCH_PARENT,
+            ViewGroup.LayoutParams.WRAP_CONTENT
+        )
     }
 }

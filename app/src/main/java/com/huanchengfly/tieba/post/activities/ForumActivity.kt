@@ -38,7 +38,6 @@ import com.bumptech.glide.request.RequestOptions
 import com.bumptech.glide.request.target.SimpleTarget
 import com.bumptech.glide.request.transition.Transition
 import com.google.android.material.appbar.AppBarLayout
-import com.google.android.material.appbar.AppBarLayout.OnOffsetChangedListener
 import com.google.android.material.appbar.CollapsingToolbarLayout
 import com.google.android.material.button.MaterialButton
 import com.google.android.material.floatingactionbutton.FloatingActionButton
@@ -82,7 +81,8 @@ import retrofit2.Response
 import kotlin.math.abs
 
 
-class ForumActivity : BaseActivity(), View.OnClickListener, OnRefreshedListener, TabLayout.OnTabSelectedListener {
+class ForumActivity : BaseActivity(), View.OnClickListener, OnRefreshedListener,
+    TabLayout.OnTabSelectedListener {
     private var mSortType = ForumSortType.REPLY_TIME
     private var forumName: String? = null
     private var firstLoaded = false
@@ -162,6 +162,8 @@ class ForumActivity : BaseActivity(), View.OnClickListener, OnRefreshedListener,
     @BindView(R.id.collapsing_toolbar)
     lateinit var collapsingToolbar: CollapsingToolbarLayout
 
+    var titleVisible = false
+
     var headerViewHeight: Int = 0
     var toolbarColor: Int = -1
     var customToolbarColorEnable = false
@@ -181,7 +183,9 @@ class ForumActivity : BaseActivity(), View.OnClickListener, OnRefreshedListener,
         ThemeUtil.setTranslucentThemeBackground(findViewById(R.id.background))
         toolbarColor = ThemeUtils.getColorById(this, R.color.default_color_toolbar)
         fakeStatusBar.layoutParams.height = StatusBarUtil.getStatusBarHeight(this)
-        headerView.viewTreeObserver.addOnGlobalLayoutListener { headerViewHeight = headerView.height }
+        headerView.viewTreeObserver.addOnGlobalLayoutListener {
+            headerViewHeight = headerView.height
+        }
         animated = false
         val intent = intent
         val title: String
@@ -205,8 +209,10 @@ class ForumActivity : BaseActivity(), View.OnClickListener, OnRefreshedListener,
 
     private fun getSortType(): ForumSortType {
         val defaultSortType = appPreferences.defaultSortType!!.toInt()
-        return ForumSortType.valueOf(SharedPreferencesUtil.get(this, SharedPreferencesUtil.SP_SETTINGS)
-                .getInt(forumName + "_sort_type", defaultSortType))
+        return ForumSortType.valueOf(
+            SharedPreferencesUtil.get(this, SharedPreferencesUtil.SP_SETTINGS)
+                .getInt(forumName + "_sort_type", defaultSortType)
+        )
     }
 
     private fun setSortType(sortType: ForumSortType) {
@@ -218,9 +224,9 @@ class ForumActivity : BaseActivity(), View.OnClickListener, OnRefreshedListener,
         }
         refresh()
         SharedPreferencesUtil.get(this, SharedPreferencesUtil.SP_SETTINGS)
-                .edit()
-                .putInt(forumName + "_sort_type", sortType.value)
-                .apply()
+            .edit()
+            .putInt(forumName + "_sort_type", sortType.value)
+            .apply()
     }
 
     private fun refresh() {
@@ -241,7 +247,8 @@ class ForumActivity : BaseActivity(), View.OnClickListener, OnRefreshedListener,
     }
 
     private fun initView() {
-        appbar.addOnOffsetChangedListener(OnOffsetChangedListener { _, verticalOffset ->
+        title = null
+        appbar.addOnOffsetChangedListener { _, verticalOffset ->
             val toolbarScrollOffset = 0 - (verticalOffset + headerView.height)
             if (toolbarScrollOffset >= 0) {
                 val toolbarScrollPercent = toolbarScrollOffset.toFloat() / toolbar.height
@@ -249,38 +256,45 @@ class ForumActivity : BaseActivity(), View.OnClickListener, OnRefreshedListener,
                 radius -= radius * toolbarScrollPercent
                 if (headerTabBackground.background is GradientDrawable) {
                     (headerTabBackground.background as GradientDrawable).cornerRadii = floatArrayOf(
-                            radius, radius,
-                            radius, radius,
-                            0f, 0f,
-                            0f, 0f
+                        radius, radius,
+                        radius, radius,
+                        0f, 0f,
+                        0f, 0f
                     )
                 } else {
                     headerTabBackground.background = getRadiusDrawable(
-                            topLeftPx = radius,
-                            topRightPx = radius
+                        topLeftPx = radius,
+                        topRightPx = radius
                     )
                 }
-                if (!ThemeUtil.isTranslucentTheme(this)) customToolbarColorEnable = toolbarScrollPercent < 1f
+                if (!ThemeUtil.isTranslucentTheme(this)) customToolbarColorEnable =
+                    toolbarScrollPercent < 1f
             } else {
                 if (!ThemeUtil.isTranslucentTheme(this)) customToolbarColorEnable = true
             }
-            val titleVisible = mDataBean != null && forumName != null && abs(verticalOffset) >= forumInfoView.height
+            val isTitleVisible =
+                mDataBean != null && forumName != null && abs(verticalOffset) >= forumInfoView.height
             val percent: Float = if (abs(verticalOffset) <= forumInfoView.height) {
                 abs(verticalOffset.toFloat()) / forumInfoView.height.toFloat()
             } else {
                 1f
             }
-            // title = if (titleVisible) getString(R.string.title_forum, forumName) else null
-            toolbarEndBtn.visibility = if (titleVisible) View.VISIBLE else View.GONE
-            toolbar.backgroundTintList = ColorStateList.valueOf(Util.changeAlpha(toolbarColor, percent))
+            if (titleVisible != isTitleVisible) {
+                title = if (isTitleVisible) getString(R.string.title_forum, forumName) else null
+                titleVisible = isTitleVisible
+            }
+            toolbarEndBtn.visibility = if (isTitleVisible) View.VISIBLE else View.GONE
+            toolbar.backgroundTintList =
+                ColorStateList.valueOf(Util.changeAlpha(toolbarColor, percent))
             if (animated && ThemeUtil.isTranslucentTheme(this)) {
                 if (abs(verticalOffset) >= headerViewHeight) {
                     if (headerView.visibility != View.INVISIBLE) {
-                        AnimUtil.alphaOut(headerView).setListener(object : AnimatorListenerAdapter() {
-                            override fun onAnimationEnd(animation: Animator) {
-                                headerView.visibility = View.INVISIBLE
-                            }
-                        }).start()
+                        AnimUtil.alphaOut(headerView)
+                            .setListener(object : AnimatorListenerAdapter() {
+                                override fun onAnimationEnd(animation: Animator) {
+                                    headerView.visibility = View.INVISIBLE
+                                }
+                            }).start()
                     }
                 } else {
                     if (headerView.visibility != View.VISIBLE) AnimUtil.alphaIn(headerView).start()
@@ -289,16 +303,24 @@ class ForumActivity : BaseActivity(), View.OnClickListener, OnRefreshedListener,
             if (ThemeUtil.isTranslucentTheme(this)) {
                 setCustomStatusColor(-1)
             }
-        })
+        }
         mAdapter = FragmentTabViewPagerAdapter(supportFragmentManager).apply {
             addFragment(
-                    if (PreloadUtil.isPreloading(this@ForumActivity))
-                        ForumFragment.newInstance(forumName, false, getSortType(), PreloadUtil.getPreloadId(this@ForumActivity))
-                    else
-                        ForumFragment.newInstance(forumName, false, getSortType()),
-                    getString(R.string.tab_forum_1)
+                if (PreloadUtil.isPreloading(this@ForumActivity))
+                    ForumFragment.newInstance(
+                        forumName,
+                        false,
+                        getSortType(),
+                        PreloadUtil.getPreloadId(this@ForumActivity)
+                    )
+                else
+                    ForumFragment.newInstance(forumName, false, getSortType()),
+                getString(R.string.tab_forum_1)
             )
-            addFragment(ForumFragment.newInstance(forumName, true, getSortType()), getString(R.string.tab_forum_good))
+            addFragment(
+                ForumFragment.newInstance(forumName, true, getSortType()),
+                getString(R.string.tab_forum_good)
+            )
         }
         myViewPager.apply {
             adapter = mAdapter
@@ -325,11 +347,12 @@ class ForumActivity : BaseActivity(), View.OnClickListener, OnRefreshedListener,
         fab.hide()
         fab.rippleColor = Color.TRANSPARENT
         fab.supportImageTintList = ColorStateList.valueOf(resources.getColor(R.color.white))
-        fab.setImageResource(when (appPreferences.forumFabFunction) {
-            "refresh" -> R.drawable.ic_round_refresh
-            "back_to_top" -> R.drawable.ic_round_vertical_align_top
-            else -> R.drawable.ic_round_create
-        }
+        fab.setImageResource(
+            when (appPreferences.forumFabFunction) {
+                "refresh" -> R.drawable.ic_round_refresh
+                "back_to_top" -> R.drawable.ic_round_vertical_align_top
+                else -> R.drawable.ic_round_create
+            }
         )
         fab.contentDescription = getString(
             when (appPreferences.forumFabFunction) {
@@ -359,52 +382,102 @@ class ForumActivity : BaseActivity(), View.OnClickListener, OnRefreshedListener,
             R.id.menu_unfollow -> {
                 if (mDataBean != null) {
                     DialogUtil.build(this@ForumActivity)
-                            .setTitle(R.string.title_dialog_unfollow)
-                            .setNegativeButton(R.string.button_cancel, null)
-                            .setPositiveButton(R.string.button_sure_default) { _, _ ->
-                                TiebaApi.getInstance().unlikeForum(mDataBean!!.forum?.id!!, mDataBean!!.forum?.name!!, mDataBean!!.anti?.tbs!!).enqueue(object : Callback<CommonResponse> {
-                                    override fun onFailure(call: Call<CommonResponse>, t: Throwable) {
-                                        Util.createSnackbar(myViewPager, getString(R.string.toast_unlike_failed, t.message), Snackbar.LENGTH_SHORT).show()
-                                    }
+                        .setTitle(R.string.title_dialog_unfollow)
+                        .setNegativeButton(R.string.button_cancel, null)
+                        .setPositiveButton(R.string.button_sure_default) { _, _ ->
+                            TiebaApi.getInstance().unlikeForum(
+                                mDataBean!!.forum?.id!!,
+                                mDataBean!!.forum?.name!!,
+                                mDataBean!!.anti?.tbs!!
+                            ).enqueue(object : Callback<CommonResponse> {
+                                override fun onFailure(call: Call<CommonResponse>, t: Throwable) {
+                                    Util.createSnackbar(
+                                        myViewPager,
+                                        getString(R.string.toast_unlike_failed, t.message),
+                                        Snackbar.LENGTH_SHORT
+                                    ).show()
+                                }
 
-                                    override fun onResponse(call: Call<CommonResponse>, response: Response<CommonResponse>) {
-                                        Util.createSnackbar(myViewPager, R.string.toast_unlike_success, Snackbar.LENGTH_SHORT).show()
-                                        refresh()
-                                    }
-                                })
-                            }
-                            .create()
-                            .show()
-                }
-            }
-            R.id.menu_share -> TiebaUtil.shareText(this, "https://tieba.baidu.com/f?kw=$forumName", getString(R.string.title_forum, forumName))
-            R.id.menu_search -> startActivity(Intent(this, SearchPostActivity::class.java).putExtra(SearchPostActivity.PARAM_FORUM, forumName))
-            R.id.menu_refresh -> refresh()
-            R.id.menu_send_to_desktop -> if (ShortcutManagerCompat.isRequestPinShortcutSupported(this)) {
-                if (mDataBean != null) {
-                    Glide.with(this)
-                            .asBitmap()
-                            .apply(RequestOptions.circleCropTransform())
-                            .load(mDataBean!!.forum?.avatar)
-                            .into(object : SimpleTarget<Bitmap>() {
-                                override fun onResourceReady(resource: Bitmap, transition: Transition<in Bitmap>?) {
-                                    val shortcutInfoIntent = Intent(this@ForumActivity, ForumActivity::class.java)
-                                            .setAction(Intent.ACTION_VIEW)
-                                            .putExtra(EXTRA_FORUM_NAME, mDataBean!!.forum?.name)
-                                    val shortcutInfoCompat = ShortcutInfoCompat.Builder(this@ForumActivity, mDataBean!!.forum?.id!!)
-                                            .setIntent(shortcutInfoIntent)
-                                            .setShortLabel(mDataBean!!.forum?.name + "吧")
-                                            .setIcon(IconCompat.createWithBitmap(resource))
-                                            .build()
-                                    ShortcutManagerCompat.requestPinShortcut(this@ForumActivity, shortcutInfoCompat, null)
-                                    Util.createSnackbar(myViewPager, R.string.toast_send_to_desktop_success, Snackbar.LENGTH_SHORT).show()
+                                override fun onResponse(
+                                    call: Call<CommonResponse>,
+                                    response: Response<CommonResponse>
+                                ) {
+                                    Util.createSnackbar(
+                                        myViewPager,
+                                        R.string.toast_unlike_success,
+                                        Snackbar.LENGTH_SHORT
+                                    ).show()
+                                    refresh()
                                 }
                             })
+                        }
+                        .create()
+                        .show()
+                }
+            }
+            R.id.menu_share -> TiebaUtil.shareText(
+                this,
+                "https://tieba.baidu.com/f?kw=$forumName",
+                getString(R.string.title_forum, forumName)
+            )
+            R.id.menu_search -> startActivity(
+                Intent(this, SearchPostActivity::class.java).putExtra(
+                    SearchPostActivity.PARAM_FORUM,
+                    forumName
+                )
+            )
+            R.id.menu_refresh -> refresh()
+            R.id.menu_send_to_desktop -> if (ShortcutManagerCompat.isRequestPinShortcutSupported(
+                    this
+                )
+            ) {
+                if (mDataBean != null) {
+                    Glide.with(this)
+                        .asBitmap()
+                        .apply(RequestOptions.circleCropTransform())
+                        .load(mDataBean!!.forum?.avatar)
+                        .into(object : SimpleTarget<Bitmap>() {
+                            override fun onResourceReady(
+                                resource: Bitmap,
+                                transition: Transition<in Bitmap>?
+                            ) {
+                                val shortcutInfoIntent =
+                                    Intent(this@ForumActivity, ForumActivity::class.java)
+                                        .setAction(Intent.ACTION_VIEW)
+                                        .putExtra(EXTRA_FORUM_NAME, mDataBean!!.forum?.name)
+                                val shortcutInfoCompat = ShortcutInfoCompat.Builder(
+                                    this@ForumActivity,
+                                    mDataBean!!.forum?.id!!
+                                )
+                                    .setIntent(shortcutInfoIntent)
+                                    .setShortLabel(mDataBean!!.forum?.name + "吧")
+                                    .setIcon(IconCompat.createWithBitmap(resource))
+                                    .build()
+                                ShortcutManagerCompat.requestPinShortcut(
+                                    this@ForumActivity,
+                                    shortcutInfoCompat,
+                                    null
+                                )
+                                Util.createSnackbar(
+                                    myViewPager,
+                                    R.string.toast_send_to_desktop_success,
+                                    Snackbar.LENGTH_SHORT
+                                ).show()
+                            }
+                        })
                 } else {
-                    Util.createSnackbar(myViewPager, getString(R.string.toast_send_to_desktop_failed, "获取吧信息失败"), Snackbar.LENGTH_SHORT).show()
+                    Util.createSnackbar(
+                        myViewPager,
+                        getString(R.string.toast_send_to_desktop_failed, "获取吧信息失败"),
+                        Snackbar.LENGTH_SHORT
+                    ).show()
                 }
             } else {
-                Util.createSnackbar(myViewPager, getString(R.string.toast_send_to_desktop_failed, "启动器不支持创建快捷方式"), Snackbar.LENGTH_SHORT).show()
+                Util.createSnackbar(
+                    myViewPager,
+                    getString(R.string.toast_send_to_desktop_failed, "启动器不支持创建快捷方式"),
+                    Snackbar.LENGTH_SHORT
+                ).show()
             }
             R.id.menu_exit -> finish()
             else -> {
@@ -478,50 +551,65 @@ class ForumActivity : BaseActivity(), View.OnClickListener, OnRefreshedListener,
                     if ("0" == mDataBean!!.forum?.signInInfo?.userInfo?.isSignIn) {
                         launch(IO + job) {
                             TiebaApi.getInstance()
-                                    .signAsync(mDataBean!!.forum?.name!!, mDataBean!!.anti?.tbs!!)
-                                    .doIfSuccess {
-                                        if (it.userInfo != null) {
-                                            mDataBean!!.forum?.signInInfo?.userInfo?.isSignIn = "1"
-                                            Util.createSnackbar(
-                                                    myViewPager,
-                                                    getString(
-                                                            R.string.toast_sign_success,
-                                                            it.userInfo.signBonusPoint,
-                                                            it.userInfo.userSignRank
-                                                    ),
-                                                    Snackbar.LENGTH_SHORT
-                                            ).show()
-                                            refreshHeaderView()
-                                            refreshForumInfo()
-                                        }
+                                .signAsync(mDataBean!!.forum?.name!!, mDataBean!!.anti?.tbs!!)
+                                .doIfSuccess {
+                                    if (it.userInfo != null) {
+                                        mDataBean!!.forum?.signInInfo?.userInfo?.isSignIn = "1"
+                                        Util.createSnackbar(
+                                            myViewPager,
+                                            getString(
+                                                R.string.toast_sign_success,
+                                                it.userInfo.signBonusPoint,
+                                                it.userInfo.userSignRank
+                                            ),
+                                            Snackbar.LENGTH_SHORT
+                                        ).show()
+                                        refreshHeaderView()
+                                        refreshForumInfo()
                                     }
-                                    .doIfFailure {
-                                        Util.createSnackbar(myViewPager, getString(R.string.toast_sign_failed, it.message), Snackbar.LENGTH_SHORT).show()
-                                    }
+                                }
+                                .doIfFailure {
+                                    Util.createSnackbar(
+                                        myViewPager,
+                                        getString(R.string.toast_sign_failed, it.message),
+                                        Snackbar.LENGTH_SHORT
+                                    ).show()
+                                }
                         }
                     }
                 } else {
                     TiebaApi.getInstance()
-                            .likeForum(mDataBean!!.forum?.id!!, mDataBean!!.forum?.name!!, mDataBean!!.anti?.tbs!!)
-                            .enqueue(object : Callback<LikeForumResultBean> {
-                                override fun onFailure(call: Call<LikeForumResultBean>, t: Throwable) {
-                                    Toast.makeText(this@ForumActivity, getString(R.string.toast_like_failed, t.message), Toast.LENGTH_SHORT).show()
-                                }
+                        .likeForum(
+                            mDataBean!!.forum?.id!!,
+                            mDataBean!!.forum?.name!!,
+                            mDataBean!!.anti?.tbs!!
+                        )
+                        .enqueue(object : Callback<LikeForumResultBean> {
+                            override fun onFailure(call: Call<LikeForumResultBean>, t: Throwable) {
+                                Toast.makeText(
+                                    this@ForumActivity,
+                                    getString(R.string.toast_like_failed, t.message),
+                                    Toast.LENGTH_SHORT
+                                ).show()
+                            }
 
-                                override fun onResponse(call: Call<LikeForumResultBean>, response: Response<LikeForumResultBean>) {
-                                    mDataBean!!.forum?.isLike = "1"
-                                    Toast.makeText(
-                                        this@ForumActivity,
-                                        getString(
-                                            R.string.toast_like_success,
-                                            response.body()!!.info?.memberSum
-                                        ),
-                                        Toast.LENGTH_SHORT
-                                    ).show()
-                                    refreshHeaderView()
-                                    refreshForumInfo()
-                                }
-                            })
+                            override fun onResponse(
+                                call: Call<LikeForumResultBean>,
+                                response: Response<LikeForumResultBean>
+                            ) {
+                                mDataBean!!.forum?.isLike = "1"
+                                Toast.makeText(
+                                    this@ForumActivity,
+                                    getString(
+                                        R.string.toast_like_success,
+                                        response.body()!!.info?.memberSum
+                                    ),
+                                    Toast.LENGTH_SHORT
+                                ).show()
+                                refreshHeaderView()
+                                refreshForumInfo()
+                            }
+                        })
                 }
             }
         }
@@ -557,7 +645,18 @@ class ForumActivity : BaseActivity(), View.OnClickListener, OnRefreshedListener,
             headerView.visibility = View.VISIBLE
             if (!ThemeUtil.isTranslucentTheme(this)) {
                 try {
-                    val color = getDarkerColor(greifyColor(Color.parseColor("#${mDataBean?.forum?.themeColor?.day?.commonColor ?: ThemeUtils.getColorById(this, R.color.default_color_primary)}"), 0.15f), 0.1f)
+                    val color = getDarkerColor(
+                        greifyColor(
+                            Color.parseColor(
+                                "#${
+                                    mDataBean?.forum?.themeColor?.day?.commonColor ?: ThemeUtils.getColorById(
+                                        this,
+                                        R.color.default_color_primary
+                                    )
+                                }"
+                            ), 0.15f
+                        ), 0.1f
+                    )
                     toolbarColor = color
                     appbar.backgroundTintList = ColorStateList.valueOf(color)
                     setCustomStatusColor(color)
@@ -570,7 +669,10 @@ class ForumActivity : BaseActivity(), View.OnClickListener, OnRefreshedListener,
             }
             if (avatarView.tag == null) {
                 ImageUtil.load(avatarView, ImageUtil.LOAD_TYPE_AVATAR, mDataBean!!.forum!!.avatar)
-                ImageUtil.initImageView(avatarView, PhotoViewBean(mDataBean!!.forum!!.avatar, false))
+                ImageUtil.initImageView(
+                    avatarView,
+                    PhotoViewBean(mDataBean!!.forum!!.avatar, false)
+                )
             }
             try {
                 progressBar.max = mDataBean!!.forum?.levelUpScore!!.toInt()
@@ -586,9 +688,9 @@ class ForumActivity : BaseActivity(), View.OnClickListener, OnRefreshedListener,
             } catch (ignored: Exception) {
             }
             listOf(
-                    statMembersTextView,
-                    statPostsTextView,
-                    statThreadsTextView
+                statMembersTextView,
+                statPostsTextView,
+                statThreadsTextView
             ).forEach {
                 it.typeface = Typeface.createFromAsset(assets, "bebas.ttf")
             }
@@ -615,7 +717,11 @@ class ForumActivity : BaseActivity(), View.OnClickListener, OnRefreshedListener,
                     toolbarEndBtn.setText(R.string.button_signed)
                     toolbarEndBtn.isEnabled = false
                 }
-                tipTextView.text = getString(R.string.tip_forum_header_liked, mDataBean!!.forum?.userLevel, mDataBean!!.forum?.levelName)
+                tipTextView.text = getString(
+                    R.string.tip_forum_header_liked,
+                    mDataBean!!.forum?.userLevel,
+                    mDataBean!!.forum?.levelName
+                )
             } else {
                 button.setText(R.string.button_like)
                 button.isEnabled = true
@@ -693,12 +799,14 @@ class ForumActivity : BaseActivity(), View.OnClickListener, OnRefreshedListener,
         }
         if (firstLoaded) {
             firstLoaded = false
-            HistoryUtil.writeHistory(History()
+            HistoryUtil.writeHistory(
+                History()
                     .setTitle(getString(R.string.title_forum, forumName))
                     .setTimestamp(System.currentTimeMillis())
                     .setAvatar(forumPageBean.forum?.avatar)
                     .setType(HistoryUtil.TYPE_FORUM)
-                    .setData(forumName))
+                    .setData(forumName)
+            )
         }
     }
 
@@ -712,8 +820,8 @@ class ForumActivity : BaseActivity(), View.OnClickListener, OnRefreshedListener,
 
         @JvmStatic
         fun launch(
-                context: Context,
-                forumName: String
+            context: Context,
+            forumName: String
         ) {
             context.goToActivity<ForumActivity> {
                 putExtra(EXTRA_FORUM_NAME, forumName)
@@ -761,12 +869,13 @@ class ForumActivity : BaseActivity(), View.OnClickListener, OnRefreshedListener,
                 ForumSortType.ONLY_FOLLOWED -> 2
             }
             val adapter = SingleChooseAdapter(
-                    this,
-                    listOf(
-                            getString(R.string.title_sort_by_reply),
-                            getString(R.string.title_sort_by_send),
-                            getString(R.string.title_sort_by_like_user)),
-                    index
+                this,
+                listOf(
+                    getString(R.string.title_sort_by_reply),
+                    getString(R.string.title_sort_by_send),
+                    getString(R.string.title_sort_by_like_user)
+                ),
+                index
             )
             listPopupWindow.isModal = true
             listPopupWindow.setAdapter(adapter)

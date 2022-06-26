@@ -20,8 +20,6 @@ import com.huanchengfly.tieba.post.api.models.SubFloorListBean
 import com.huanchengfly.tieba.post.components.MyLinearLayoutManager
 import com.huanchengfly.tieba.post.components.dividers.ThreadDivider
 import com.huanchengfly.tieba.post.goToActivity
-import com.huanchengfly.tieba.post.models.ReplyInfoBean
-import com.huanchengfly.tieba.post.utils.AccountUtil
 import com.huanchengfly.tieba.post.utils.NavigationHelper
 import com.huanchengfly.tieba.post.utils.ThemeUtil
 import com.scwang.smart.refresh.layout.SmartRefreshLayout
@@ -142,52 +140,61 @@ class FloorActivity : BaseActivity() {
             return
         }
         TiebaApi.getInstance()
-                .floor(tid!!, pn, pid, spid)
-                .enqueue(object : Callback<SubFloorListBean> {
-                    override fun onFailure(call: Call<SubFloorListBean>, t: Throwable) {
-                        Toast.makeText(this@FloorActivity, t.message, Toast.LENGTH_SHORT).show()
-                        refreshLayout.finishRefresh(false)
-                    }
+            .floor(tid!!, pn, pid, spid)
+            .enqueue(object : Callback<SubFloorListBean> {
+                override fun onFailure(call: Call<SubFloorListBean>, t: Throwable) {
+                    Toast.makeText(this@FloorActivity, t.message, Toast.LENGTH_SHORT).show()
+                    refreshLayout.finishRefresh(false)
+                }
 
-                    override fun onResponse(call: Call<SubFloorListBean>, response: Response<SubFloorListBean>) {
-                        val subFloorListBean = response.body() ?: return
-                        dataBean = subFloorListBean
-                        recyclerViewAdapter!!.setData(subFloorListBean)
-                        pid = subFloorListBean.post!!.id
-                        spid = null
-                        hasMore = subFloorListBean.page!!.currentPage.toInt() < subFloorListBean.page.totalPage.toInt()
-                        refreshLayout.finishRefresh()
-                        if (!hasMore) {
-                            refreshLayout.setNoMoreData(true)
-                        }
-                        toolbar.title = getString(R.string.title_floor_loaded, subFloorListBean.post.floor)
+                override fun onResponse(
+                    call: Call<SubFloorListBean>,
+                    response: Response<SubFloorListBean>
+                ) {
+                    val subFloorListBean = response.body() ?: return
+                    dataBean = subFloorListBean
+                    recyclerViewAdapter!!.setData(subFloorListBean)
+                    pid = subFloorListBean.post!!.id
+                    spid = null
+                    hasMore =
+                        subFloorListBean.page!!.currentPage.toInt() < subFloorListBean.page.totalPage.toInt()
+                    refreshLayout.finishRefresh()
+                    if (!hasMore) {
+                        refreshLayout.setNoMoreData(true)
                     }
-                })
+                    toolbar.title =
+                        getString(R.string.title_floor_loaded, subFloorListBean.post.floor)
+                }
+            })
     }
 
     private fun loadMore() {
         if (!hasMore) return
         TiebaApi.getInstance()
-                .floor(tid!!, pn, pid, spid)
-                .enqueue(object : Callback<SubFloorListBean> {
-                    override fun onFailure(call: Call<SubFloorListBean>, t: Throwable) {
-                        refreshLayout.finishLoadMore(false)
-                    }
+            .floor(tid!!, pn, pid, spid)
+            .enqueue(object : Callback<SubFloorListBean> {
+                override fun onFailure(call: Call<SubFloorListBean>, t: Throwable) {
+                    refreshLayout.finishLoadMore(false)
+                }
 
-                    override fun onResponse(call: Call<SubFloorListBean>, response: Response<SubFloorListBean>) {
-                        val subFloorListBean = response.body() ?: return
-                        dataBean = subFloorListBean
-                        recyclerViewAdapter!!.addData(subFloorListBean)
-                        pid = subFloorListBean.post!!.id
-                        spid = null
-                        hasMore = subFloorListBean.page!!.currentPage.toInt() < subFloorListBean.page.totalPage.toInt()
-                        refreshLayout.finishLoadMore()
-                        if (!hasMore) {
-                            refreshLayout.setNoMoreData(true)
-                        }
-                        pn += 1
+                override fun onResponse(
+                    call: Call<SubFloorListBean>,
+                    response: Response<SubFloorListBean>
+                ) {
+                    val subFloorListBean = response.body() ?: return
+                    dataBean = subFloorListBean
+                    recyclerViewAdapter!!.addData(subFloorListBean)
+                    pid = subFloorListBean.post!!.id
+                    spid = null
+                    hasMore =
+                        subFloorListBean.page!!.currentPage.toInt() < subFloorListBean.page.totalPage.toInt()
+                    refreshLayout.finishLoadMore()
+                    if (!hasMore) {
+                        refreshLayout.setNoMoreData(true)
                     }
-                })
+                    pn += 1
+                }
+            })
     }
 
     companion object {
@@ -198,10 +205,10 @@ class FloorActivity : BaseActivity() {
         @JvmStatic
         @JvmOverloads
         fun launch(
-                context: Context,
-                threadId: String,
-                postId: String? = null,
-                subPostId: String? = null
+            context: Context,
+            threadId: String,
+            postId: String? = null,
+            subPostId: String? = null
         ) {
             if (postId == null && subPostId == null) {
                 throw IllegalArgumentException()

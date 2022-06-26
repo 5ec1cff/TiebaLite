@@ -2,6 +2,8 @@ package com.huanchengfly.tieba.post.adapters
 
 import android.content.Context
 import android.content.Intent
+import android.text.SpannableStringBuilder
+import android.text.Spanned
 import android.text.TextUtils
 import android.view.Menu
 import android.view.MenuItem
@@ -13,17 +15,12 @@ import com.alibaba.android.vlayout.DelegateAdapter
 import com.alibaba.android.vlayout.LayoutHelper
 import com.alibaba.android.vlayout.layout.SingleLayoutHelper
 import com.huanchengfly.tieba.post.R
-import com.huanchengfly.tieba.post.activities.BaseActivity
 import com.huanchengfly.tieba.post.activities.ForumActivity.Companion.launch
-import com.huanchengfly.tieba.post.activities.ReplyActivity
 import com.huanchengfly.tieba.post.api.models.ThreadContentBean
 import com.huanchengfly.tieba.post.components.MyViewHolder
-import com.huanchengfly.tieba.post.fragments.MenuDialogFragment
-import com.huanchengfly.tieba.post.models.ReplyInfoBean
-import com.huanchengfly.tieba.post.plugins.PluginManager
-import com.huanchengfly.tieba.post.toJson
+import com.huanchengfly.tieba.post.components.spans.RoundBackgroundColorSpan
+import com.huanchengfly.tieba.post.ui.theme.utils.ThemeUtils
 import com.huanchengfly.tieba.post.utils.*
-import com.huanchengfly.tieba.post.utils.TiebaUtil.reportPost
 import com.huanchengfly.tieba.post.widgets.MyLinearLayout
 
 
@@ -99,24 +96,60 @@ class ThreadMainPostAdapter(
             true
         }
         holder.setVisibility(R.id.thread_list_item_user_lz_tip, true)
-        holder.setText(R.id.thread_list_item_user_name, StringUtil.getUsernameString(context, user.name, user.nameShow))
-        val levelId = if (user.levelId == null || TextUtils.isEmpty(user.levelId)) "?" else user.levelId
-        ThemeUtil.setChipThemeByLevel(levelId,
-                holder.getView(R.id.thread_list_item_user_status),
-                holder.getView(R.id.thread_list_item_user_level),
-                holder.getView(R.id.thread_list_item_user_lz_tip))
+        var username: CharSequence = StringUtil.getUsernameString(context, user.name, user.nameShow)
+        if (user.isBawu == "1") {
+            val bawuType = if (user.bawuType == "manager") "吧主" else "小吧主"
+            username = SpannableStringBuilder(username).apply {
+                append(" ")
+                append(
+                    bawuType, RoundBackgroundColorSpan(
+                        context,
+                        Util.alphaColor(ThemeUtils.getColorByAttr(context, R.attr.colorAccent), 30),
+                        ThemeUtils.getColorByAttr(context, R.attr.colorAccent),
+                        DisplayUtil.dp2px(context, 10f).toFloat()
+                    ), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE
+                )
+            }
+        }
+        holder.setText(
+            R.id.thread_list_item_user_name,
+            username
+        )
+
+        val levelId =
+            if (user.levelId == null || TextUtils.isEmpty(user.levelId)) "?" else user.levelId
+        ThemeUtil.setChipThemeByLevel(
+            levelId,
+            holder.getView(R.id.thread_list_item_user_status),
+            holder.getView(R.id.thread_list_item_user_level),
+            holder.getView(R.id.thread_list_item_user_lz_tip)
+        )
         holder.setText(R.id.thread_list_item_user_level, levelId)
         holder.setOnClickListener(R.id.thread_list_item_user_avatar) {
-            NavigationHelper.toUserSpaceWithAnim(context, user.id, StringUtil.getAvatarUrl(user.portrait), it)
+            NavigationHelper.toUserSpaceWithAnim(
+                context,
+                user.id,
+                StringUtil.getAvatarUrl(user.portrait),
+                it
+            )
         }
-        ImageUtil.load(holder.getView(R.id.thread_list_item_user_avatar), ImageUtil.LOAD_TYPE_AVATAR, user.portrait)
+        ImageUtil.load(
+            holder.getView(R.id.thread_list_item_user_avatar),
+            ImageUtil.LOAD_TYPE_AVATAR,
+            user.portrait
+        )
+        var timeText =
+            context.getString(
+                R.string.tip_thread_item_thread,
+                DateTimeUtils.getRelativeTimeString(context, threadBean.createTime!!)
+            )
+        if (user.ipAddress?.isNotEmpty() == true) {
+            timeText += " "
+            timeText += context.getString(R.string.text_ip_location, user.ipAddress)
+        }
         holder.setText(
-                R.id.thread_list_item_user_time,
-                context.getString(
-                    R.string.tip_thread_item_thread,
-                    DateTimeUtils.getRelativeTimeString(context, threadBean.createTime!!),
-                    user.ipAddress
-                )
+            R.id.thread_list_item_user_time,
+            timeText
         )
         holder.setText(R.id.thread_list_item_content_title, title)
         if (threadPostBean != null) {
@@ -131,18 +164,21 @@ class ThreadMainPostAdapter(
         return 1
     }
 
-    private fun refreshForumView(forumInfoBean: ThreadContentBean.ForumInfoBean?, forumView: ViewGroup?) {
+    private fun refreshForumView(
+        forumInfoBean: ThreadContentBean.ForumInfoBean?,
+        forumView: ViewGroup?
+    ) {
         if (forumView == null || forumInfoBean == null) {
             return
         }
         val forumNameView = forumView.findViewById<TextView>(R.id.forum_bar_name)
         val forumAvatarView: ImageView = forumView.findViewById(R.id.forum_bar_avatar)
-        if (!showForum || !context.appPreferences.showShortcutInThread || "0" == forumInfoBean.isExists || forumInfoBean.name!!.isEmpty()) {
+        if (!showForum || !context.appPreferences.showShortcutInThread || "0" == forumInfoBean.isExists || forumInfoBean.name?.isEmpty() == true) {
             forumView.visibility = View.GONE
             return
         }
         forumView.visibility = View.VISIBLE
-        forumView.setOnClickListener(View.OnClickListener { launch(context, forumInfoBean.name) })
+        forumView.setOnClickListener(View.OnClickListener { launch(context, forumInfoBean.name!!) })
         forumNameView.text = forumInfoBean.name
         ImageUtil.load(forumAvatarView, ImageUtil.LOAD_TYPE_AVATAR, forumInfoBean.avatar)
     }

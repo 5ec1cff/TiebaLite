@@ -2,7 +2,10 @@ package com.huanchengfly.tieba.post.utils
 
 import android.content.Context
 import android.graphics.Bitmap
-import android.text.*
+import android.text.Spannable
+import android.text.SpannableStringBuilder
+import android.text.Spanned
+import android.text.TextUtils
 import android.view.Gravity
 import android.view.View
 import android.view.ViewGroup
@@ -132,7 +135,7 @@ class PostListAdapterHelper(
     private fun setText(textView: TextView, content: CharSequence?) {
         var text = content
         text = replaceVideoNumberSpan(context, text)
-        // text = StringUtil.getEmotionContent(EmotionUtil.EMOTION_ALL_TYPE, textView, text)
+        text = StringUtil.getEmotionContent(EmotionUtil.EMOTION_ALL_TYPE, textView, text)
         textView.text = text
     }
 
@@ -192,6 +195,17 @@ class PostListAdapterHelper(
         return layoutParams
     }
 
+    private fun appendTextToLastTextView(views: List<View>, newContent: CharSequence?): Boolean {
+        val lastView = views.lastOrNull()
+        if (lastView is TextView) {
+            val spannableStringBuilder = SpannableStringBuilder(lastView.text)
+            spannableStringBuilder.append(newContent ?: "")
+            setText(lastView, spannableStringBuilder)
+            return false
+        }
+        return true
+    }
+
     private fun getLinkContent(newContent: CharSequence?, url: String): CharSequence {
         return getLinkContent("", newContent, url)
     }
@@ -227,6 +241,19 @@ class PostListAdapterHelper(
         return spannableStringBuilder
     }
 
+    private fun appendLinkToLastTextView(
+        views: List<View>,
+        newContent: CharSequence?,
+        url: String
+    ): Boolean {
+        val lastView = views.lastOrNull()
+        if (lastView is TextView) {
+            setText(lastView, getLinkContent(lastView.text, newContent, url))
+            return false
+        }
+        return true
+    }
+
     private fun getUserContent(newContent: CharSequence?, uid: String): CharSequence {
         return getUserContent("", newContent, uid)
     }
@@ -249,6 +276,19 @@ class PostListAdapterHelper(
         return spannableStringBuilder
     }
 
+    private fun appendUserToLastTextView(
+        views: List<View>,
+        newContent: CharSequence?,
+        uid: String
+    ): Boolean {
+        val lastView = views.lastOrNull()
+        if (lastView is TextView) {
+            setText(lastView, getUserContent(lastView.text, newContent, uid))
+            return false
+        }
+        return true
+    }
+
     private fun getPhotoViewBeans(): List<PhotoViewBean> {
         val photoViewBeans: MutableList<PhotoViewBean> = mutableListOf()
         for (key in photoViewBeansMap.keys) {
@@ -264,20 +304,12 @@ class PostListAdapterHelper(
         val views: MutableList<View> = ArrayList()
         var textToAppend = SpannableStringBuilder()
         var viewToAppend: View? = null
-        val emotionsToAppend = mutableListOf<EmotionSpanV2>()
-        val emotionNames = mutableSetOf<String>()
         fun addTextView() {
             if (textToAppend.isNotEmpty()) {
                 views.add(createTextView().apply {
                     text = textToAppend
                     layoutParams = defaultLayoutParams
                     val size = (-paint.ascent() + paint.descent()).roundToInt()
-                    emotionsToAppend.forEach {
-                        it.size = size
-                    }
-                    EmotionManager.preloadEmotionsForView(emotionNames, context, this)
-                    emotionNames.clear()
-                    emotionsToAppend.clear()
                 })
                 textToAppend = SpannableStringBuilder()
             }
@@ -288,9 +320,12 @@ class PostListAdapterHelper(
                 "1" -> textToAppend.append(getLinkContent(contentBean.text, contentBean.link!!))
                 "2" -> {
                     val emojiText = "#(${contentBean.c})"
-                    emotionNames.add(contentBean.text!!)
-                    textToAppend.append(emojiText, EmotionSpanV2(contentBean.text!!, context).also { emotionsToAppend.add(it) },
+                    textToAppend.append(emojiText, EmotionSpanV2(contentBean.text!!, context),
                         Spannable.SPAN_EXCLUSIVE_EXCLUSIVE)
+                    registerEmotion(
+                        contentBean.text!!,
+                        contentBean.c!!
+                    )
                 }
                 "3" -> {
                     val url = ImageUtil.getUrl(
