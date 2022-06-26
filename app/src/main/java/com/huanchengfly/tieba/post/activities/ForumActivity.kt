@@ -270,7 +270,7 @@ class ForumActivity : BaseActivity(), View.OnClickListener, OnRefreshedListener,
             } else {
                 1f
             }
-            title = if (titleVisible) getString(R.string.title_forum, forumName) else null
+            // title = if (titleVisible) getString(R.string.title_forum, forumName) else null
             toolbarEndBtn.visibility = if (titleVisible) View.VISIBLE else View.GONE
             toolbar.backgroundTintList = ColorStateList.valueOf(Util.changeAlpha(toolbarColor, percent))
             if (animated && ThemeUtil.isTranslucentTheme(this)) {

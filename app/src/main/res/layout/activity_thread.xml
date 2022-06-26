@@ -15,7 +15,6 @@
         android:layout_width="match_parent"
         android:layout_height="match_parent"
         android:layout_marginBottom="@dimen/thread_bottom_bar_height"
-        app:layout_anchor="@id/appbar"
         app:layout_behavior="@string/appbar_scrolling_view_behavior"
         app:srlDragRate="0.8"
         app:srlEnableNestedScrolling="true"

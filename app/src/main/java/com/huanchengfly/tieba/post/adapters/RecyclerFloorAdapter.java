@@ -68,7 +68,7 @@ public class RecyclerFloorAdapter extends BaseSingleTypeAdapter<SubFloorListBean
     public RecyclerFloorAdapter(Context context) {
         super(context, null);
         setOnItemClickListener((viewHolder, postInfo, position) -> {
-            ReplyActivity.Companion.start(context, dataBean, postInfo.getId());
+            ReplyActivity.Companion.start(context, dataBean, postInfo);
         });
         DisplayMetrics dm = getContext().getResources().getDisplayMetrics();
         maxWidth = (float) dm.widthPixels;
@@ -93,7 +93,7 @@ public class RecyclerFloorAdapter extends BaseSingleTypeAdapter<SubFloorListBean
                 .setOnNavigationItemSelectedListener(item -> {
                     switch (item.getItemId()) {
                         case R.id.menu_reply:
-                            ReplyActivity.Companion.start(getContext(), dataBean, postInfo.getId());
+                            ReplyActivity.Companion.start(getContext(), dataBean, postInfo);
                             return true;
                         case R.id.menu_report:
                             TiebaUtil.reportPost(getContext(), postInfo.getId());

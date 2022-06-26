@@ -624,7 +624,7 @@ class ReplyActivity : BaseActivity(), View.OnClickListener,
             )
         }
 
-        fun start(context: Context, dataBean: SubFloorListBean, pid: String? = null) {
+        fun start(context: Context, dataBean: SubFloorListBean, postInfo: SubFloorListBean.PostInfo? = null) {
             val floor = dataBean.post!!.floor.toInt()
             val pn = floor - floor % 30
             context.startActivity(
@@ -636,8 +636,8 @@ class ReplyActivity : BaseActivity(), View.OnClickListener,
                             dataBean.forum.name,
                             dataBean.anti!!.tbs,
                             AccountUtil.getLoginInfo(context)!!.nameShow,
-                            pid = pid ?: dataBean.post.id,
-                            replyUser = dataBean.post.author.nameShow,
+                            pid = (postInfo ?: dataBean.post).id,
+                            replyUser = (postInfo ?: dataBean.post).author.nameShow,
                             floorNum = dataBean.post.floor,
                             pn = pn.toString()
                         ).toString()

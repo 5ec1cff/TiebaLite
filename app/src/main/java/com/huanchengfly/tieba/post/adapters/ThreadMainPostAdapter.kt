@@ -89,47 +89,7 @@ class ThreadMainPostAdapter(
     }
 
     private fun showMenu() {
-        val userInfoBean: ThreadContentBean.UserInfoBean = user
-        MenuDialogFragment.newInstance(R.menu.menu_thread_item, null)
-                .setOnNavigationItemSelectedListener { item: MenuItem ->
-                    when (item.itemId) {
-                        R.id.menu_reply -> {
-                            ReplyActivity.start(context, dataBean!!,
-                                            pid = threadPostBean!!.id,
-                                            floorNum = threadPostBean!!.floor,
-                                            replyUser = userInfoBean.nameShow)
-                            true
-                        }
-                        R.id.menu_report -> {
-                            reportPost(context, threadPostBean!!.id!!)
-                            true
-                        }
-                        R.id.menu_copy -> {
-                            TiebaUtil.copyText(context as BaseActivity, contentBeansToSimpleString(threadPostBean!!.content!!))
-                            /*
-                            Util.showCopyDialog(
-                                context as BaseActivity?,
-                                stringBuilder.toString(),
-                                threadPostBean!!.id
-                            )*/
-                            true
-                        }
-                        R.id.menu_copy_json -> {
-                            TiebaUtil.copyText(context as BaseActivity, threadPostBean!!.toJson())
-                            true
-                        }
-                        else -> PluginManager.performPluginMenuClick(
-                            PluginManager.MENU_POST_ITEM,
-                            item.itemId,
-                            threadPostBean!!
-                        )
-                    }
-                }
-                .setInitMenuCallback { menu: Menu ->
-                    PluginManager.initPluginMenu(menu, PluginManager.MENU_POST_ITEM)
-                    menu.findItem(R.id.menu_delete).isVisible = false
-                }
-                .show((context as BaseActivity).supportFragmentManager, threadPostBean!!.id + "_Menu")
+        showMenu(context, user, dataBean!!, threadPostBean!!)
     }
 
     override fun onBindViewHolder(holder: MyViewHolder, position: Int) {

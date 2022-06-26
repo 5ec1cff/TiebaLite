@@ -1,14 +1,9 @@
 package com.huanchengfly.tieba.post.adapters
 
-import android.annotation.SuppressLint
 import android.content.Context
-import android.content.Intent
 import android.text.SpannableStringBuilder
 import android.text.Spanned
-import android.text.TextPaint
 import android.text.TextUtils
-import android.view.Menu
-import android.view.MenuItem
 import android.view.View
 import android.view.ViewGroup
 import android.widget.LinearLayout
@@ -34,16 +29,10 @@ import com.huanchengfly.tieba.post.components.spans.RoundBackgroundColorSpan
 import com.huanchengfly.tieba.post.dpToPxFloat
 import com.huanchengfly.tieba.post.fragments.ConfirmDialogFragment
 import com.huanchengfly.tieba.post.fragments.FloorFragment.Companion.newInstance
-import com.huanchengfly.tieba.post.fragments.MenuDialogFragment
-import com.huanchengfly.tieba.post.models.ReplyInfoBean
-import com.huanchengfly.tieba.post.plugins.PluginManager
-import com.huanchengfly.tieba.post.toJson
 import com.huanchengfly.tieba.post.ui.theme.utils.ThemeUtils
 import com.huanchengfly.tieba.post.utils.*
 import com.huanchengfly.tieba.post.utils.BilibiliUtil.replaceVideoNumberSpan
 import com.huanchengfly.tieba.post.utils.DateTimeUtils.getRelativeTimeString
-import com.huanchengfly.tieba.post.utils.TiebaUtil.copyText
-import com.huanchengfly.tieba.post.utils.TiebaUtil.reportPost
 import com.huanchengfly.tieba.post.widgets.MyLinearLayout
 import com.huanchengfly.tieba.post.widgets.VoicePlayerView
 import com.huanchengfly.tieba.post.widgets.theme.TintTextView
@@ -111,7 +100,7 @@ class ThreadReplyAdapter(context: Context) : BaseSingleTypeDelegateAdapter<PostL
         }
     }
 
-    private fun getContentView(subPostListItemBean: PostListItemBean, postListItemBean: PostListItemBean): View {
+    private fun getContentViewForSubPosts(subPostListItemBean: PostListItemBean, postListItemBean: PostListItemBean): View {
         val builder = SpannableStringBuilder()
         val userInfoBean = userInfoBeanMap[subPostListItemBean.authorId]
         if (userInfoBean != null) {
@@ -185,20 +174,22 @@ class ThreadReplyAdapter(context: Context) : BaseSingleTypeDelegateAdapter<PostL
             setPadding(DisplayUtil.dp2px(context, 8f), 8, DisplayUtil.dp2px(context, 8f), 8)
             background = Util.getDrawableByAttr(context, R.attr.selectableItemBackground)
             setOnClickListener {
-                ReplyActivity.start(context, dataBean!!,
+                ReplyActivity.start(
+                    context, dataBean!!,
                     postListItemBean.id,
                     subPostListItemBean.id,
                     postListItemBean.floor,
-                    if (userInfoBean != null) userInfoBean.nameShow else "")
-                setOnLongClickListener {
-                    showMenu(
-                        postListItemBean,
-                        subPostListItemBean,
-                        getItemList().indexOf(postListItemBean),
-                        postListItemBean.subPostList!!.subPostList!!.indexOf(subPostListItemBean)
-                    )
-                    true
-                }
+                    if (userInfoBean != null) userInfoBean.nameShow else ""
+                )
+            }
+            setOnLongClickListener {
+                showMenu(
+                    postListItemBean,
+                    getItemList().indexOf(postListItemBean),
+                    subPostListItemBean,
+                    postListItemBean.subPostList!!.subPostList!!.indexOf(subPostListItemBean)
+                )
+                true
             }
             return contentView
         }
@@ -232,7 +223,7 @@ class ThreadReplyAdapter(context: Context) : BaseSingleTypeDelegateAdapter<PostL
             }
             more.text = context.getString(R.string.tip_floor_more_count, (count - subPostList.size).toString())
             for (postListItemBean in subPostList) {
-                views.add(getContentView(postListItemBean, bean))
+                views.add(getContentViewForSubPosts(postListItemBean, bean))
             }
             myLinearLayout.addViews(views)
             more.setOnClickListener {
@@ -247,136 +238,64 @@ class ThreadReplyAdapter(context: Context) : BaseSingleTypeDelegateAdapter<PostL
         }
     }
 
-    private fun showMenu(postListItemBean: PostListItemBean, subPostListItemBean: PostListItemBean, position: Int, subPosition: Int) {
-        val userInfoBean = userInfoBeanMap[subPostListItemBean.authorId]
-        MenuDialogFragment.newInstance(R.menu.menu_thread_item, null)
-                .setOnNavigationItemSelectedListener { item: MenuItem ->
-                    when (item.itemId) {
-                        R.id.menu_reply -> {
-                            ReplyActivity.start(context, dataBean!!,
-                                pid = postListItemBean.id,
-                                floorNum = postListItemBean.floor,
-                                spid = subPostListItemBean.id,
-                                replyUser = if (userInfoBean != null) userInfoBean.nameShow else "")
-                            return@setOnNavigationItemSelectedListener true
-                        }
-                        R.id.menu_copy -> {
-                            // Util.showCopyDialog(context as BaseActivity, stringBuilder.toString(), subPostListItemBean.id)
-                            copyText(context as BaseActivity, contentBeansToSimpleString(subPostListItemBean.content!!))
-                            return@setOnNavigationItemSelectedListener true
-                        }
-                        R.id.menu_copy_json -> {
-                            TiebaUtil.copyText(context as BaseActivity, subPostListItemBean.toJson())
-                            return@setOnNavigationItemSelectedListener true
-                        }
-                        R.id.menu_delete -> {
-                            if (TextUtils.equals(AccountUtil.getUid(context), subPostListItemBean.authorId)) {
-                                ConfirmDialogFragment.newInstance(context.getString(R.string.title_dialog_del_post))
-                                        .setOnConfirmListener {
-                                            getInstance()
-                                                    .delPost(
-                                                            dataBean!!.forum!!.id!!,
-                                                            dataBean!!.forum!!.name!!,
-                                                            dataBean!!.thread!!.id!!,
-                                                            subPostListItemBean.id!!,
-                                                            dataBean!!.anti!!.tbs!!,
-                                                            isFloor = true,
-                                                            delMyPost = true
-                                                    )
-                                                    .enqueue(object : Callback<CommonResponse?> {
-                                                        override fun onResponse(call: Call<CommonResponse?>, response: Response<CommonResponse?>) {
-                                                            Toast.makeText(context, R.string.toast_success, Toast.LENGTH_SHORT).show()
-                                                            postListItemBean.subPostList?.subPostList?.removeAt(subPosition)
-                                                            notifyItemChanged(position)
-                                                        }
-
-                                                        override fun onFailure(call: Call<CommonResponse?>, t: Throwable) {
-                                                            Toast.makeText(context, t.message, Toast.LENGTH_SHORT).show()
-                                                        }
-                                                    })
+    private fun showMenu(postListItemBean: PostListItemBean, position: Int, subPostListItemBean: PostListItemBean? = null, subPosition: Int = 0) {
+        val userInfoBean = userInfoBeanMap[(subPostListItemBean ?: postListItemBean).authorId]
+        showMenu(
+            context, userInfoBean, dataBean!!,
+            postListItemBean, subPostListItemBean,
+            deleteHandler = { targetPostItemBean: PostListItemBean, isSubPost: Boolean ->
+                if (TextUtils.equals(AccountUtil.getUid(context), targetPostItemBean.authorId)) {
+                    ConfirmDialogFragment.newInstance(context.getString(R.string.title_dialog_del_post))
+                        .setOnConfirmListener {
+                            getInstance()
+                                .delPost(
+                                    dataBean!!.forum!!.id!!,
+                                    dataBean!!.forum!!.name!!,
+                                    dataBean!!.thread!!.id!!,
+                                    targetPostItemBean.id!!,
+                                    dataBean!!.anti!!.tbs!!,
+                                    isFloor = true,
+                                    delMyPost = TextUtils.equals(
+                                        dataBean!!.user!!.id,
+                                        targetPostItemBean.authorId
+                                    )
+                                )
+                                .enqueue(object : Callback<CommonResponse?> {
+                                    override fun onResponse(
+                                        call: Call<CommonResponse?>,
+                                        response: Response<CommonResponse?>
+                                    ) {
+                                        Toast.makeText(
+                                            context,
+                                            R.string.toast_success,
+                                            Toast.LENGTH_SHORT
+                                        ).show()
+                                        if (isSubPost) {
+                                            postListItemBean.subPostList?.subPostList?.removeAt(
+                                                subPosition
+                                            )
+                                            notifyItemChanged(position)
+                                        } else {
+                                            remove(position)
                                         }
-                                        .show((context as BaseActivity).supportFragmentManager, subPostListItemBean.id + "_Confirm")
-                            }
-                            return@setOnNavigationItemSelectedListener true
-                        }
-                    }
-                    PluginManager.performPluginMenuClick(
-                        PluginManager.MENU_SUB_POST_ITEM,
-                        item.itemId,
-                        subPostListItemBean
-                    )
-                }
-                .setInitMenuCallback { menu: Menu ->
-                    PluginManager.initPluginMenu(menu, PluginManager.MENU_SUB_POST_ITEM)
-                    menu.findItem(R.id.menu_report).isVisible = false
-                    if (TextUtils.equals(AccountUtil.getUid(context), subPostListItemBean.authorId)) {
-                        menu.findItem(R.id.menu_delete).isVisible = true
-                    }
-                }
-                .show((context as BaseActivity).supportFragmentManager, subPostListItemBean.id + "_" + postListItemBean.id + "_Menu")
-    }
+                                    }
 
-    @SuppressLint("NonConstantResourceId")
-    private fun showMenu(postListItemBean: PostListItemBean, position: Int) {
-        val userInfoBean = userInfoBeanMap[postListItemBean.authorId]
-        MenuDialogFragment.newInstance(R.menu.menu_thread_item, null)
-                .setOnNavigationItemSelectedListener { item: MenuItem ->
-                    when (item.itemId) {
-                        R.id.menu_reply -> {
-                            ReplyActivity.start(context, dataBean!!,
-                                pid = postListItemBean.id,
-                                floorNum = postListItemBean.floor,
-                                replyUser = if (userInfoBean != null) userInfoBean.nameShow else "")
-                            return@setOnNavigationItemSelectedListener true
+                                    override fun onFailure(
+                                        call: Call<CommonResponse?>,
+                                        t: Throwable
+                                    ) {
+                                        Toast.makeText(context, t.message, Toast.LENGTH_SHORT)
+                                            .show()
+                                    }
+                                })
                         }
-                        R.id.menu_report -> {
-                            reportPost(context, postListItemBean.id!!)
-                            return@setOnNavigationItemSelectedListener true
-                        }
-                        R.id.menu_copy -> {
-                            copyText(context as BaseActivity, contentBeansToSimpleString(postListItemBean.content!!))
-                            // Util.showCopyDialog(context as BaseActivity, stringBuilder.toString(), postListItemBean.id)
-                            return@setOnNavigationItemSelectedListener true
-                        }
-                        R.id.menu_copy_json -> {
-                            TiebaUtil.copyText(context as BaseActivity, postListItemBean.toJson())
-                            return@setOnNavigationItemSelectedListener true
-                        }
-                        R.id.menu_delete -> {
-                            if (TextUtils.equals(dataBean!!.user!!.id, postListItemBean.authorId) || TextUtils.equals(dataBean!!.user!!.id, dataBean!!.thread!!.author!!.id)) {
-                                ConfirmDialogFragment.newInstance(context.getString(R.string.title_dialog_del_post))
-                                        .setOnConfirmListener {
-                                            getInstance()
-                                                    .delPost(dataBean!!.forum!!.id!!, dataBean!!.forum!!.name!!, dataBean!!.thread!!.id!!, postListItemBean.id!!, dataBean!!.anti!!.tbs!!, TextUtils.equals(dataBean!!.user!!.id, postListItemBean.authorId), false)
-                                                    .enqueue(object : Callback<CommonResponse?> {
-                                                        override fun onResponse(call: Call<CommonResponse?>, response: Response<CommonResponse?>) {
-                                                            Toast.makeText(context, R.string.toast_success, Toast.LENGTH_SHORT).show()
-                                                            remove(position)
-                                                        }
-
-                                                        override fun onFailure(call: Call<CommonResponse?>, t: Throwable) {
-                                                            Toast.makeText(context, t.message, Toast.LENGTH_SHORT).show()
-                                                        }
-                                                    })
-                                        }
-                                        .show((context as BaseActivity).supportFragmentManager, postListItemBean.id + "_Delete_Confirm")
-                            }
-                            return@setOnNavigationItemSelectedListener true
-                        }
-                    }
-                    PluginManager.performPluginMenuClick(
-                        PluginManager.MENU_POST_ITEM,
-                        item.itemId,
-                        postListItemBean
-                    )
+                        .show(
+                            (context as BaseActivity).supportFragmentManager,
+                            targetPostItemBean.id + "_Confirm"
+                        )
                 }
-                .setInitMenuCallback { menu: Menu ->
-                    PluginManager.initPluginMenu(menu, PluginManager.MENU_POST_ITEM)
-                    if (TextUtils.equals(dataBean!!.user!!.id, postListItemBean.authorId) || TextUtils.equals(dataBean!!.user!!.id, dataBean!!.thread!!.author!!.id)) {
-                        menu.findItem(R.id.menu_delete).isVisible = true
-                    }
-                }
-                .show((context as BaseActivity).supportFragmentManager, postListItemBean.id + "_Menu")
+            }
+        )
     }
 
     override fun convert(viewHolder: MyViewHolder, item: PostListItemBean, position: Int) {
