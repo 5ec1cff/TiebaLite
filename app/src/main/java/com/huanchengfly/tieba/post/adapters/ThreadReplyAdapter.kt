@@ -143,6 +143,7 @@ class ThreadReplyAdapter(context: Context) :
             textView.layoutParams = defaultLayoutParamsWithNoMargins
             val paint = textView.paint
             val size = (-paint.ascent() + paint.descent()).roundToInt()
+            val emotionsToAdd = mutableSetOf<String>()
             for (contentBean in subPostListItemBean.content) {
                 when (contentBean.type) {
                     "0" -> {
@@ -162,10 +163,7 @@ class ThreadReplyAdapter(context: Context) :
                     "2" -> {
                         val emojiText = "#(" + contentBean.c + ")"
                         val emotionName = contentBean.text!!
-                        EmotionManager.registerEmotion(
-                            contentBean.text!!,
-                            contentBean.c!!
-                        )
+                        emotionsToAdd.add(emotionName)
                         builder.append(
                             emojiText,
                             EmotionSpanV2(emotionName, context).apply { this.size = size },
@@ -177,6 +175,8 @@ class ThreadReplyAdapter(context: Context) :
                     }
                 }
             }
+            EmotionManager.preloadEmotionsForView(emotionsToAdd, context, textView)
+            // textView.text = replaceVideoNumberSpan(context, StringUtil.getEmotionContent(EmotionUtil.EMOTION_ALL_TYPE, textView, builder))
             textView.text = replaceVideoNumberSpan(context, builder)
             contentView = textView
         }

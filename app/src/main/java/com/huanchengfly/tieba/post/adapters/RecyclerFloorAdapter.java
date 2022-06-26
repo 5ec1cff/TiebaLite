@@ -105,7 +105,6 @@ public class RecyclerFloorAdapter extends BaseSingleTypeAdapter<SubFloorListBean
                                 switch (contentBean.getType()) {
                                     case "2":
                                         contentBean.setText("#(" + contentBean.getC() + ")");
-                                        EmotionManager.INSTANCE.registerEmotion(contentBean.getText(), contentBean.getC());
                                         break;
                                     case "3":
                                     case "20":
@@ -341,7 +340,6 @@ public class RecyclerFloorAdapter extends BaseSingleTypeAdapter<SubFloorListBean
                     break;
                 case "2":
                     String emojiText = "#(" + contentBean.getC() + ")";
-                    EmotionManager.INSTANCE.registerEmotion(contentBean.getText(), contentBean.getC());
                     if (appendTextToLastTextView(views, emojiText)) {
                         TextView textView = createTextView(TEXT_VIEW_TYPE_CONTENT);
                         textView.setLayoutParams(getLayoutParams(contentBean));

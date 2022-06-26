@@ -12,6 +12,7 @@ import android.text.style.ForegroundColorSpan;
 import android.widget.TextView;
 
 import com.huanchengfly.tieba.post.R;
+import com.huanchengfly.tieba.post.components.spans.EmotionSpan;
 import com.huanchengfly.tieba.post.components.spans.EmotionSpanV2;
 import com.huanchengfly.tieba.post.ui.theme.utils.ThemeUtils;
 
@@ -36,12 +37,16 @@ public class StringUtil {
             while (matcherEmotion.find()) {
                 String key = matcherEmotion.group();
                 int start = matcherEmotion.start();
-                String group1 = matcherEmotion.group(1);
-                Drawable emotionDrawable = EmotionManager.INSTANCE.getEmotionDrawable(EmotionManager.INSTANCE.getEmotionIdByName(group1));
-                if (emotionDrawable != null) {
+                int imgRes = EmotionUtil.getImgByName(emotion_map_type, key);
+                if (imgRes != -1) {
                     TextPaint paint = tv.getPaint();
                     int size = Math.round(-paint.ascent() + paint.descent());
-                    EmotionSpanV2 span = new EmotionSpanV2(emotionDrawable, size);
+                    /*
+                    Bitmap bitmap = BitmapFactory.decodeResource(res, imgRes);
+                    Bitmap scaleBitmap = Bitmap.createScaledBitmap(bitmap, size, size, true);
+                    ImageSpan span = new MyImageSpan(context, scaleBitmap);
+                    */
+                    EmotionSpan span = new EmotionSpan(tv.getContext(), imgRes, size);
                     spannableString.setSpan(span, start, start + key.length(), Spannable.SPAN_EXCLUSIVE_EXCLUSIVE);
                 }
             }

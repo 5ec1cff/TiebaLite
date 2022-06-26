@@ -33,7 +33,6 @@ import com.huanchengfly.tieba.post.widgets.VideoPlayerStandard
 import com.huanchengfly.tieba.post.widgets.VoicePlayerView
 import com.huanchengfly.tieba.post.widgets.theme.TintMySpannableTextView
 import java.util.*
-import kotlin.collections.ArrayList
 import kotlin.math.roundToInt
 
 class PostListAdapterHelper(
@@ -304,12 +303,20 @@ class PostListAdapterHelper(
         val views: MutableList<View> = ArrayList()
         var textToAppend = SpannableStringBuilder()
         var viewToAppend: View? = null
+        val emotionsToAppend = mutableListOf<EmotionSpanV2>()
+        val emotionNames = mutableSetOf<String>()
         fun addTextView() {
             if (textToAppend.isNotEmpty()) {
                 views.add(createTextView().apply {
                     text = textToAppend
                     layoutParams = defaultLayoutParams
                     val size = (-paint.ascent() + paint.descent()).roundToInt()
+                    emotionsToAppend.forEach {
+                        it.size = size
+                    }
+                    EmotionManager.preloadEmotionsForView(emotionNames, context, this)
+                    emotionNames.clear()
+                    emotionsToAppend.clear()
                 })
                 textToAppend = SpannableStringBuilder()
             }
@@ -320,12 +327,9 @@ class PostListAdapterHelper(
                 "1" -> textToAppend.append(getLinkContent(contentBean.text, contentBean.link!!))
                 "2" -> {
                     val emojiText = "#(${contentBean.c})"
-                    textToAppend.append(emojiText, EmotionSpanV2(contentBean.text!!, context),
+                    emotionNames.add(contentBean.text!!)
+                    textToAppend.append(emojiText, EmotionSpanV2(contentBean.text!!, context).also { emotionsToAppend.add(it) },
                         Spannable.SPAN_EXCLUSIVE_EXCLUSIVE)
-                    registerEmotion(
-                        contentBean.text!!,
-                        contentBean.c!!
-                    )
                 }
                 "3" -> {
                     val url = ImageUtil.getUrl(
