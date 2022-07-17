@@ -2,6 +2,7 @@ package com.huanchengfly.tieba.post.activities
 
 import android.graphics.Color
 import android.os.Bundle
+import android.text.TextUtils
 import android.view.View
 import android.view.ViewGroup
 import android.view.animation.LinearInterpolator
@@ -35,6 +36,7 @@ import com.huanchengfly.tieba.post.utils.PopupUtil
 import com.huanchengfly.tieba.post.utils.ThemeUtil
 import com.huanchengfly.tieba.post.utils.Util
 import com.huanchengfly.tieba.post.utils.anim.animSet
+import com.huanchengfly.tieba.post.widgets.theme.TintTextInputEditText
 import com.scwang.smart.refresh.layout.SmartRefreshLayout
 import org.litepal.LitePal
 import retrofit2.Call
@@ -121,6 +123,11 @@ class SearchPostActivity : BaseActivity() {
         if (keyword != null) {
             editText.setText(keyword)
         }
+        (editText as? TintTextInputEditText)?.setOnBackPressedListener { _ ->
+            if (TextUtils.isEmpty(editText.text)) {
+                finish()
+            }
+        }
         editText.post {
             if (keyword == null) {
                 KeyboardUtil.showKeyboard(editText)
@@ -167,6 +174,8 @@ class SearchPostActivity : BaseActivity() {
     override fun onBackPressed() {
         if (state == State.SEARCH) {
             state = State.INPUT
+            editText.text = null
+            invalidateState()
             KeyboardUtil.showKeyboard(editText)
         } else {
             finish()

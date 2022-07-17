@@ -249,7 +249,6 @@
         <activity
             android:name=".activities.SearchPostActivity"
             android:configChanges="screenSize|screenLayout|orientation|smallestScreenSize|keyboardHidden"
-            android:theme="@style/AppTheme.Floating"
             android:windowSoftInputMode="adjustResize" />
         <activity
             android:name=".activities.NewIntroActivity"

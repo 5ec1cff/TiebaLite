@@ -2,6 +2,7 @@ package com.huanchengfly.tieba.post.activities
 
 import android.content.Context
 import android.os.Bundle
+import android.text.TextUtils
 import android.view.View
 import android.view.ViewGroup.LayoutParams.MATCH_PARENT
 import android.view.ViewGroup.LayoutParams.WRAP_CONTENT
@@ -38,6 +39,7 @@ import com.huanchengfly.tieba.post.utils.AnimUtil
 import com.huanchengfly.tieba.post.utils.ThemeUtil
 import com.huanchengfly.tieba.post.utils.anim.animSet
 import com.huanchengfly.tieba.post.widgets.MyViewPager
+import com.huanchengfly.tieba.post.widgets.theme.TintTextInputEditText
 import org.litepal.LitePal
 
 class NewSearchActivity : BaseActivity(), TabLayout.OnTabSelectedListener {
@@ -68,7 +70,7 @@ class NewSearchActivity : BaseActivity(), TabLayout.OnTabSelectedListener {
                 SearchHistory(value)
                     .saveOrUpdate("content = ?", value)
             }
-            state = if (value == null) {
+            state = if (TextUtils.isEmpty(value)) {
                 State.INPUT
             } else {
                 State.SEARCH
@@ -122,6 +124,11 @@ class NewSearchActivity : BaseActivity(), TabLayout.OnTabSelectedListener {
             return@setOnEditorActionListener false
         }
         keyword = intent.getStringExtra(EXTRA_KEYWORD)
+        (editText as? TintTextInputEditText)?.setOnBackPressedListener { _ ->
+            if (TextUtils.isEmpty(editText.text)) {
+                finish()
+            }
+        }
         editText.post {
             if (keyword == null) {
                 KeyboardUtil.showKeyboard(editText)
@@ -183,6 +190,7 @@ class NewSearchActivity : BaseActivity(), TabLayout.OnTabSelectedListener {
     override fun onBackPressed() {
         if (state == State.SEARCH) {
             state = State.INPUT
+            editText.text = null
             invalidateState()
             KeyboardUtil.showKeyboard(editText)
         } else {

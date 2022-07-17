@@ -1,9 +1,14 @@
 package com.huanchengfly.tieba.post.widgets.theme
 
+import android.app.Activity
 import android.content.Context
+import android.text.TextUtils
 import android.util.AttributeSet
+import android.util.Log
+import android.view.KeyEvent
 import androidx.appcompat.widget.AppCompatEditText
 import com.huanchengfly.tieba.post.R
+import com.huanchengfly.tieba.post.interfaces.OnBackPressedListener
 import com.huanchengfly.tieba.post.ui.theme.interfaces.Tintable
 import com.huanchengfly.tieba.post.ui.theme.utils.ColorStateListUtils
 
@@ -39,5 +44,18 @@ class TintTextInputEditText @JvmOverloads constructor(
         if (textColorHintResId != 0) {
             setHintTextColor(ColorStateListUtils.createColorStateList(context, textColorHintResId))
         }
+    }
+
+    override fun dispatchKeyEventPreIme(event: KeyEvent): Boolean {
+        if (event.action == KeyEvent.ACTION_UP && event.keyCode == KeyEvent.KEYCODE_BACK) {
+            mOnBackPressedListener?.onBackPressed(this)
+        }
+        return super.dispatchKeyEventPreIme(event)
+    }
+
+    private var mOnBackPressedListener: OnBackPressedListener? = null
+
+    fun setOnBackPressedListener(onBackPressedListener: OnBackPressedListener) {
+        mOnBackPressedListener = onBackPressedListener
     }
 }
