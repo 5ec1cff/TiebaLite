@@ -51,7 +51,6 @@ fun showMenu(context: Context, userInfoBean: ThreadContentBean.UserInfoBean?,
                 }
                 R.id.menu_copy_json -> {
                     TiebaUtil.copyText(context as BaseActivity, targetPostItemBean.toJson())
-
                 }
                 R.id.menu_delete -> {
                     deleteHandler?.invoke(targetPostItemBean, isSubPost)

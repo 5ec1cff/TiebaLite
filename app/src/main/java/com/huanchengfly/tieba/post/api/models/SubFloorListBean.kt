@@ -1,12 +1,13 @@
 package com.huanchengfly.tieba.post.api.models
 
 import com.google.gson.annotations.SerializedName
+import com.huanchengfly.tieba.post.models.BaseBean
 
 data class SubFloorListBean(
     @SerializedName("error_code")
-    val errorCode: String,
+    val errorCode: String?,
     @SerializedName("error_msg")
-    val errorMsg: String,
+    val errorMsg: String?,
     @SerializedName("subpost_list")
     val subPostList: List<PostInfo>?,
     val post: PostInfo?,
@@ -14,7 +15,7 @@ data class SubFloorListBean(
     val forum: ForumInfo?,
     val anti: AntiInfo?,
     val thread: ThreadInfo?
-) {
+): BaseBean() {
 
     data class PostInfo(
         val id: String,

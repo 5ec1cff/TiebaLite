@@ -146,15 +146,6 @@ class ThreadReplyAdapter(context: Context) :
         } else {
             val textView = createTextView()
             val emotionLoader = EmotionLoader(context)
-            // TODO: remove these debug code
-            /*
-            textView.setOnLongClickListener {
-                ((it as TextView).text as Spannable).also { t ->
-                    val emotions = t.getSpans<EmotionSpanV2>()
-                    Log.d("EmotionUtilsV2", "emotions for $t: ${emotions.contentToString()}")
-                }
-                true
-            }*/
             textView.layoutParams = defaultLayoutParamsWithNoMargins
             for (contentBean in subPostListItemBean.content) {
                 when (contentBean.type) {

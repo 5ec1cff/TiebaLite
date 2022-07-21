@@ -34,20 +34,11 @@ import kotlin.math.roundToInt
 
 class PostListAdapterHelper(
     private val context: Context
-) {
+): ThreadContentViewHelper(context) {
     var seeLz: Boolean = false
     var pureRead: Boolean = false
     private var dataBean: ThreadContentBean? = null
     private var photoViewBeansMap: TreeMap<Int, List<PhotoViewBean>> = TreeMap()
-
-    private val defaultLayoutParams: LinearLayout.LayoutParams = LinearLayout.LayoutParams(
-        ViewGroup.LayoutParams.MATCH_PARENT,
-        ViewGroup.LayoutParams.WRAP_CONTENT
-    )
-
-    init {
-        defaultLayoutParams.setMargins(0, 8, 0, 8)
-    }
 
     fun setData(data: ThreadContentBean) {
         dataBean = data
@@ -106,20 +97,8 @@ class PostListAdapterHelper(
         }
     }
 
-    private fun createTextView(): TextView {
-        val textView: TextView
-        val mySpannableTextView = TintMySpannableTextView(context)
-        mySpannableTextView.setTintResId(R.color.default_color_text)
-        mySpannableTextView.setLinkTouchMovementMethod(LinkTouchMovementMethod.getInstance())
-        textView = mySpannableTextView
-        textView.setFocusable(false)
-        textView.setClickable(false)
-        textView.setLongClickable(false)
-        textView.setTextIsSelectable(false)
-        textView.setOnClickListener(null)
-        textView.setOnLongClickListener(null)
-        textView.setLetterSpacing(0.02f)
-        textView.setTextSize(16f)
+    override fun onCreateTextView(): TextView {
+        val textView: TextView = super.onCreateTextView()
         if (pureRead) {
             textView.setLineSpacing(0.5f, 1.3f)
         } else {
@@ -141,26 +120,30 @@ class PostListAdapterHelper(
         return maxWidth
     }
 
-    private fun getLayoutParams(
+    override fun onCreateLayoutParams(
         contentBean: ThreadContentBean.ContentBean,
         floor: String
     ): LinearLayout.LayoutParams {
-        if ("3" != contentBean.type && "20" != contentBean.type && "5" != contentBean.type) {
-            return defaultLayoutParams
-        }
         var widthFloat: Float
         var heightFloat: Float
-        if (contentBean.type == "3" || contentBean.type == "20") {
-            val strings = contentBean.bsize!!.split(",".toRegex()).toTypedArray()
-            widthFloat = java.lang.Float.valueOf(strings[0])
-            heightFloat = java.lang.Float.valueOf(strings[1])
-            heightFloat *= getMaxWidth(floor) / widthFloat
-            widthFloat = getMaxWidth(floor)
-        } else {
-            val width = java.lang.Float.valueOf(contentBean.width!!)
-            widthFloat = getMaxWidth(floor)
-            heightFloat = java.lang.Float.valueOf(contentBean.height!!)
-            heightFloat *= widthFloat / width
+        when (contentBean.type) {
+            CONTENT_TYPE_IMAGE,
+            CONTENT_TYPE_MEME_IMAGE -> {
+                val strings = contentBean.bsize!!.split(",".toRegex()).toTypedArray()
+                widthFloat = java.lang.Float.valueOf(strings[0])
+                heightFloat = java.lang.Float.valueOf(strings[1])
+                heightFloat *= getMaxWidth(floor) / widthFloat
+                widthFloat = getMaxWidth(floor)
+            }
+            CONTENT_TYPE_VIDEO -> {
+                val width = java.lang.Float.valueOf(contentBean.width!!)
+                widthFloat = getMaxWidth(floor)
+                heightFloat = java.lang.Float.valueOf(contentBean.height!!)
+                heightFloat *= widthFloat / width
+            }
+            else -> {
+                return super.onCreateLayoutParams(contentBean, floor)
+            }
         }
         val width = widthFloat.roundToInt()
         val height = heightFloat.roundToInt()
@@ -184,63 +167,6 @@ class PostListAdapterHelper(
         return layoutParams
     }
 
-    private fun getLinkContent(newContent: CharSequence?, url: String): CharSequence {
-        return getLinkContent("", newContent, url)
-    }
-
-    private fun getLinkContent(
-        oldContent: CharSequence,
-        newContent: CharSequence?,
-        url: String
-    ): CharSequence {
-        val linkIconText = "[链接]"
-        val s = " "
-        val start = oldContent.length
-        val end = start + s.length + linkIconText.length + (newContent ?: "").length
-        val spannableStringBuilder = SpannableStringBuilder(oldContent)
-        var bitmap = Util.getBitmapFromVectorDrawable(context, R.drawable.ic_link)
-        val size = DisplayUtil.sp2px(context, 16f)
-        val color: Int = ThemeUtils.getColorByAttr(context, R.attr.colorAccent)
-        bitmap = Bitmap.createScaledBitmap(bitmap!!, size, size, true)
-        bitmap = Util.tintBitmap(bitmap, color)
-        spannableStringBuilder.append(
-            linkIconText,
-            MyImageSpan(context, bitmap),
-            Spanned.SPAN_EXCLUSIVE_EXCLUSIVE
-        )
-        spannableStringBuilder.append(s)
-        spannableStringBuilder.append(newContent)
-        spannableStringBuilder.setSpan(
-            MyURLSpan(context, url),
-            start,
-            end,
-            Spanned.SPAN_EXCLUSIVE_EXCLUSIVE
-        )
-        return spannableStringBuilder
-    }
-
-    private fun getUserContent(newContent: CharSequence?, uid: String): CharSequence {
-        return getUserContent("", newContent, uid)
-    }
-
-    private fun getUserContent(
-        oldContent: CharSequence,
-        newContent: CharSequence?,
-        uid: String
-    ): CharSequence {
-        val start = oldContent.length
-        val end = start + (newContent ?: "").length
-        val spannableStringBuilder = SpannableStringBuilder(oldContent)
-        spannableStringBuilder.append(newContent)
-        spannableStringBuilder.setSpan(
-            MyUserSpan(context, uid),
-            start,
-            end,
-            Spanned.SPAN_EXCLUSIVE_EXCLUSIVE
-        )
-        return spannableStringBuilder
-    }
-
     private fun getPhotoViewBeans(): List<PhotoViewBean> {
         val photoViewBeans: MutableList<PhotoViewBean> = mutableListOf()
         for (key in photoViewBeansMap.keys) {
@@ -252,140 +178,27 @@ class PostListAdapterHelper(
         return photoViewBeans
     }
 
-    private val views by lazy { mutableListOf<View>() }
-    private var textView: TextView? = null
-    private val emotionLoader by lazy { EmotionLoader(context) }
-
-    private fun getOrCreateTextView(): TextView {
-        return textView ?: createTextView().apply {
-            layoutParams = defaultLayoutParams
-            textView = this
-        }
-    }
-
-    private fun addOtherView(v: View) {
-        if (textView != null) {
-            views.add(textView!!)
-            emotionLoader.into(textView!!)
-        }
-        textView = null
-        views.add(v)
-    }
-
-    fun getContentViews(postListItemBean: PostListItemBean): List<View> {
-        views.clear()
-        textView = null
-        for (contentBean in postListItemBean.content!!) {
-            when (contentBean.type) {
-                "0", "9" -> getOrCreateTextView().append(replaceVideoNumberSpan(context, contentBean.text))
-                "1", "18" -> getOrCreateTextView().append(getLinkContent(contentBean.text, contentBean.link!!))
-                "2" -> getOrCreateTextView().let {
-                    val start = it.length()
-                    it.append("#(${contentBean.c})")
-                    val end = it.length()
-                    emotionLoader.add(contentBean.text!!, start, end)
-                }
-                "3" -> {
-                    val url = ImageUtil.getUrl(
-                        context,
-                        true,
-                        contentBean.originSrc!!,
-                        contentBean.bigCdnSrc,
-                        contentBean.cdnSrcActive,
-                        contentBean.cdnSrc
-                    )
-                    if (TextUtils.isEmpty(url)) {
-                        break
-                    }
-                    val imageView = MyImageView(context)
-                    imageView.layoutParams = getLayoutParams(contentBean, postListItemBean.floor!!)
-                    imageView.scaleType = ImageView.ScaleType.FIT_CENTER
-                    ImageUtil.load(imageView, ImageUtil.LOAD_TYPE_SMALL_PIC, url)
-                    val photoViewBeans: List<PhotoViewBean> = getPhotoViewBeans()
-                    for (photoViewBean in photoViewBeans) {
-                        if (TextUtils.equals(photoViewBean.originUrl, contentBean.originSrc)) {
-                            ImageUtil.initImageView(
-                                imageView,
-                                photoViewBeans,
-                                photoViewBeans.indexOf(photoViewBean),
-                                dataBean!!.forum!!.name,
-                                dataBean!!.forum!!.id,
-                                dataBean!!.thread!!.id,
-                                seeLz,
-                                OBJ_TYPE_THREAD_PAGE
-                            )
-                            break
-                        }
-                    }
-                    addOtherView(imageView)
-                }
-                "4" -> getOrCreateTextView().append(getUserContent(contentBean.text, contentBean.uid!!))
-                "5" -> if (contentBean.src != null && contentBean.width != null && contentBean.height != null) {
-                    if (contentBean.link != null) {
-                        val videoPlayerStandard = VideoPlayerStandard(context)
-                        videoPlayerStandard.setUp(contentBean.link, "")
-                        videoPlayerStandard.layoutParams =
-                            getLayoutParams(contentBean, postListItemBean.floor!!)
-                        videoPlayerStandard.id = R.id.video_player
-                        ImageUtil.load(
-                            videoPlayerStandard.posterImageView,
-                            ImageUtil.LOAD_TYPE_SMALL_PIC,
-                            contentBean.src,
-                            true
-                        )
-                        addOtherView(videoPlayerStandard)
-                    } else {
-                        val videoImageView = MyImageView(context)
-                        videoImageView.layoutParams =
-                            getLayoutParams(contentBean, postListItemBean.floor!!)
-                        videoImageView.scaleType = ImageView.ScaleType.CENTER_INSIDE
-                        ImageUtil.load(
-                            videoImageView,
-                            ImageUtil.LOAD_TYPE_SMALL_PIC,
-                            contentBean.src,
-                            true
-                        )
-                        videoImageView.setOnClickListener {
-                            WebViewActivity.launch(context, contentBean.text)
-                        }
-                        addOtherView(videoImageView)
-                    }
-                } else {
-                    getOrCreateTextView().append(getLinkContent("[视频] " + contentBean.text, contentBean.text!!))
-                }
-                "10" -> {
-                    val voiceUrl =
-                        "http://c.tieba.baidu.com/c/p/voice?voice_md5=" + contentBean.voiceMD5 + "&play_from=pb_voice_play"
-                    val voicePlayerView = VoicePlayerView(context)
-                    voicePlayerView.layoutParams = LinearLayout.LayoutParams(
-                        ViewGroup.LayoutParams.WRAP_CONTENT,
-                        ViewGroup.LayoutParams.WRAP_CONTENT
-                    )
-                    voicePlayerView.duration = Integer.valueOf(contentBean.duringTime!!)
-                    voicePlayerView.url = voiceUrl
-                    addOtherView(voicePlayerView)
-                }
-                "20" -> {
-                    val memeImageView = MyImageView(context)
-                    memeImageView.layoutParams =
-                        getLayoutParams(contentBean, postListItemBean.floor!!)
-                    memeImageView.scaleType = ImageView.ScaleType.CENTER_INSIDE
-                    ImageUtil.load(memeImageView, ImageUtil.LOAD_TYPE_SMALL_PIC, contentBean.src)
-                    ImageUtil.initImageView(
-                        memeImageView,
-                        PhotoViewBean(contentBean.src, contentBean.src, false)
-                    )
-                    addOtherView(memeImageView)
-                }
-                else -> {
-                }
+    override fun onInitImageView(view: ImageView, contentBean: ThreadContentBean.ContentBean) {
+        super.onInitImageView(view, contentBean)
+        val photoViewBeans: List<PhotoViewBean> = getPhotoViewBeans()
+        for (photoViewBean in photoViewBeans) {
+            if (TextUtils.equals(photoViewBean.originUrl, contentBean.originSrc)) {
+                ImageUtil.initImageView(
+                    view,
+                    photoViewBeans,
+                    photoViewBeans.indexOf(photoViewBean),
+                    dataBean!!.forum!!.name,
+                    dataBean!!.forum!!.id,
+                    dataBean!!.thread!!.id,
+                    seeLz,
+                    OBJ_TYPE_THREAD_PAGE
+                )
+                break
             }
         }
-        if (textView != null) {
-            views.add(textView!!)
-            emotionLoader.into(textView!!)
-        }
-        return views
     }
+
+    fun getContentViews(postListItemBean: PostListItemBean): List<View> =
+        super.getContentViews(postListItemBean.content!!, postListItemBean.floor!!)
 
 }

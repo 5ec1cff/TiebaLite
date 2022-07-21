@@ -20,6 +20,7 @@ import com.huanchengfly.tieba.post.toJson
 import com.huanchengfly.tieba.post.ui.theme.utils.ThemeUtils
 import com.huanchengfly.tieba.post.utils.DisplayUtil
 import com.huanchengfly.tieba.post.utils.Util
+import com.huanchengfly.tieba.post.utils.contentBeansToSimpleString
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import okhttp3.MediaType.Companion.toMediaTypeOrNull
@@ -152,18 +153,7 @@ class PluginAsoulCnki(app: IApp, manifest: PluginManifest) : IPlugin(app, manife
     }
 
     fun getPostTextContent(item: ThreadContentBean.PostListItemBean): String {
-        val stringBuilder = StringBuilder()
-        for (contentBean in item.content!!) {
-            when (contentBean.type) {
-                "2" -> contentBean.setText("#(" + contentBean.c + ")")
-                "3", "20" -> contentBean.setText("[图片]\n")
-                "10" -> contentBean.setText("[语音]\n")
-            }
-            if (contentBean.text != null) {
-                stringBuilder.append(contentBean.text)
-            }
-        }
-        return stringBuilder.toString()
+        return contentBeansToSimpleString(item.content!!)
     }
 
     private fun formatDateTime(
