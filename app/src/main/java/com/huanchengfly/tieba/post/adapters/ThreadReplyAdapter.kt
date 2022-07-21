@@ -1,15 +1,18 @@
 package com.huanchengfly.tieba.post.adapters
 
 import android.content.Context
+import android.text.Spannable
 import android.text.SpannableStringBuilder
 import android.text.Spanned
 import android.text.TextUtils
+import android.util.Log
 import android.view.View
 import android.view.ViewGroup
 import android.widget.LinearLayout
 import android.widget.RelativeLayout
 import android.widget.TextView
 import android.widget.Toast
+import androidx.core.text.getSpans
 import com.alibaba.android.vlayout.layout.LinearLayoutHelper
 import com.huanchengfly.tieba.post.R
 import com.huanchengfly.tieba.post.activities.BaseActivity
@@ -39,7 +42,9 @@ import com.huanchengfly.tieba.post.widgets.theme.TintTextView
 import retrofit2.Call
 import retrofit2.Callback
 import retrofit2.Response
-import kotlin.math.roundToInt
+import java.util.*
+import kotlin.collections.ArrayList
+import kotlin.collections.HashMap
 
 class ThreadReplyAdapter(context: Context) :
     BaseSingleTypeDelegateAdapter<PostListItemBean>(context, LinearLayoutHelper()) {
@@ -140,10 +145,17 @@ class ThreadReplyAdapter(context: Context) :
             contentView = container
         } else {
             val textView = createTextView()
+            val emotionLoader = EmotionLoader(context)
+            // TODO: remove these debug code
+            /*
+            textView.setOnLongClickListener {
+                ((it as TextView).text as Spannable).also { t ->
+                    val emotions = t.getSpans<EmotionSpanV2>()
+                    Log.d("EmotionUtilsV2", "emotions for $t: ${emotions.contentToString()}")
+                }
+                true
+            }*/
             textView.layoutParams = defaultLayoutParamsWithNoMargins
-            val paint = textView.paint
-            val size = (-paint.ascent() + paint.descent()).roundToInt()
-            val emotionsToAdd = mutableSetOf<String>()
             for (contentBean in subPostListItemBean.content) {
                 when (contentBean.type) {
                     "0" -> {
@@ -153,31 +165,26 @@ class ThreadReplyAdapter(context: Context) :
                         ) {
                             textView.visibility = View.GONE
                         }
-                        builder.append(contentBean.text)
+                        builder.append(replaceVideoNumberSpan(context, contentBean.text))
                     }
-                    "1" -> builder.append(
+                    "1", "18" -> builder.append(
                         contentBean.text,
                         MyURLSpan(context, contentBean.link),
                         Spanned.SPAN_EXCLUSIVE_EXCLUSIVE
                     )
                     "2" -> {
-                        val emojiText = "#(" + contentBean.c + ")"
-                        val emotionName = contentBean.text!!
-                        emotionsToAdd.add(emotionName)
-                        builder.append(
-                            emojiText,
-                            EmotionSpanV2(emotionName, context).apply { this.size = size },
-                            Spanned.SPAN_EXCLUSIVE_EXCLUSIVE
-                        )
+                        val start = builder.length
+                        builder.append("#(${contentBean.c})")
+                        val end = builder.length
+                        emotionLoader.add(contentBean.text!!, start, end)
                     }
                     "4", "9" -> builder.append(contentBean.text)
                     else -> {
                     }
                 }
             }
-            EmotionManager.preloadEmotionsForView(emotionsToAdd, context, textView)
-            // textView.text = replaceVideoNumberSpan(context, StringUtil.getEmotionContent(EmotionUtil.EMOTION_ALL_TYPE, textView, builder))
-            textView.text = replaceVideoNumberSpan(context, builder)
+            textView.text = builder
+            emotionLoader.into(textView)
             contentView = textView
         }
         contentView.apply {

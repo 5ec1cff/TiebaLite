@@ -2,10 +2,7 @@ package com.huanchengfly.tieba.post.utils
 
 import android.content.Context
 import android.graphics.Bitmap
-import android.text.Spannable
-import android.text.SpannableStringBuilder
-import android.text.Spanned
-import android.text.TextUtils
+import android.text.*
 import android.view.Gravity
 import android.view.View
 import android.view.ViewGroup
@@ -131,13 +128,6 @@ class PostListAdapterHelper(
         return textView
     }
 
-    private fun setText(textView: TextView, content: CharSequence?) {
-        var text = content
-        text = replaceVideoNumberSpan(context, text)
-        text = StringUtil.getEmotionContent(EmotionUtil.EMOTION_ALL_TYPE, textView, text)
-        textView.text = text
-    }
-
     private fun getMaxWidth(floor: String): Float {
         var maxWidth: Float =
             BaseApplication.ScreenInfo.EXACT_SCREEN_WIDTH.toFloat() - (24 * 2 + 38).dpToPx()
@@ -194,17 +184,6 @@ class PostListAdapterHelper(
         return layoutParams
     }
 
-    private fun appendTextToLastTextView(views: List<View>, newContent: CharSequence?): Boolean {
-        val lastView = views.lastOrNull()
-        if (lastView is TextView) {
-            val spannableStringBuilder = SpannableStringBuilder(lastView.text)
-            spannableStringBuilder.append(newContent ?: "")
-            setText(lastView, spannableStringBuilder)
-            return false
-        }
-        return true
-    }
-
     private fun getLinkContent(newContent: CharSequence?, url: String): CharSequence {
         return getLinkContent("", newContent, url)
     }
@@ -240,19 +219,6 @@ class PostListAdapterHelper(
         return spannableStringBuilder
     }
 
-    private fun appendLinkToLastTextView(
-        views: List<View>,
-        newContent: CharSequence?,
-        url: String
-    ): Boolean {
-        val lastView = views.lastOrNull()
-        if (lastView is TextView) {
-            setText(lastView, getLinkContent(lastView.text, newContent, url))
-            return false
-        }
-        return true
-    }
-
     private fun getUserContent(newContent: CharSequence?, uid: String): CharSequence {
         return getUserContent("", newContent, uid)
     }
@@ -275,19 +241,6 @@ class PostListAdapterHelper(
         return spannableStringBuilder
     }
 
-    private fun appendUserToLastTextView(
-        views: List<View>,
-        newContent: CharSequence?,
-        uid: String
-    ): Boolean {
-        val lastView = views.lastOrNull()
-        if (lastView is TextView) {
-            setText(lastView, getUserContent(lastView.text, newContent, uid))
-            return false
-        }
-        return true
-    }
-
     private fun getPhotoViewBeans(): List<PhotoViewBean> {
         val photoViewBeans: MutableList<PhotoViewBean> = mutableListOf()
         for (key in photoViewBeansMap.keys) {
@@ -299,37 +252,38 @@ class PostListAdapterHelper(
         return photoViewBeans
     }
 
-    fun getContentViews(postListItemBean: PostListItemBean): List<View> {
-        val views: MutableList<View> = ArrayList()
-        var textToAppend = SpannableStringBuilder()
-        var viewToAppend: View? = null
-        val emotionsToAppend = mutableListOf<EmotionSpanV2>()
-        val emotionNames = mutableSetOf<String>()
-        fun addTextView() {
-            if (textToAppend.isNotEmpty()) {
-                views.add(createTextView().apply {
-                    text = textToAppend
-                    layoutParams = defaultLayoutParams
-                    val size = (-paint.ascent() + paint.descent()).roundToInt()
-                    emotionsToAppend.forEach {
-                        it.size = size
-                    }
-                    EmotionManager.preloadEmotionsForView(emotionNames, context, this)
-                    emotionNames.clear()
-                    emotionsToAppend.clear()
-                })
-                textToAppend = SpannableStringBuilder()
-            }
+    private val views by lazy { mutableListOf<View>() }
+    private var textView: TextView? = null
+    private val emotionLoader by lazy { EmotionLoader(context) }
+
+    private fun getOrCreateTextView(): TextView {
+        return textView ?: createTextView().apply {
+            layoutParams = defaultLayoutParams
+            textView = this
         }
+    }
+
+    private fun addOtherView(v: View) {
+        if (textView != null) {
+            views.add(textView!!)
+            emotionLoader.into(textView!!)
+        }
+        textView = null
+        views.add(v)
+    }
+
+    fun getContentViews(postListItemBean: PostListItemBean): List<View> {
+        views.clear()
+        textView = null
         for (contentBean in postListItemBean.content!!) {
             when (contentBean.type) {
-                "0", "9" -> textToAppend.append(replaceVideoNumberSpan(context, contentBean.text))
-                "1" -> textToAppend.append(getLinkContent(contentBean.text, contentBean.link!!))
-                "2" -> {
-                    val emojiText = "#(${contentBean.c})"
-                    emotionNames.add(contentBean.text!!)
-                    textToAppend.append(emojiText, EmotionSpanV2(contentBean.text!!, context).also { emotionsToAppend.add(it) },
-                        Spannable.SPAN_EXCLUSIVE_EXCLUSIVE)
+                "0", "9" -> getOrCreateTextView().append(replaceVideoNumberSpan(context, contentBean.text))
+                "1", "18" -> getOrCreateTextView().append(getLinkContent(contentBean.text, contentBean.link!!))
+                "2" -> getOrCreateTextView().let {
+                    val start = it.length()
+                    it.append("#(${contentBean.c})")
+                    val end = it.length()
+                    emotionLoader.add(contentBean.text!!, start, end)
                 }
                 "3" -> {
                     val url = ImageUtil.getUrl(
@@ -363,9 +317,9 @@ class PostListAdapterHelper(
                             break
                         }
                     }
-                    viewToAppend = imageView
+                    addOtherView(imageView)
                 }
-                "4" -> textToAppend.append(getUserContent(contentBean.text, contentBean.uid!!))
+                "4" -> getOrCreateTextView().append(getUserContent(contentBean.text, contentBean.uid!!))
                 "5" -> if (contentBean.src != null && contentBean.width != null && contentBean.height != null) {
                     if (contentBean.link != null) {
                         val videoPlayerStandard = VideoPlayerStandard(context)
@@ -379,7 +333,7 @@ class PostListAdapterHelper(
                             contentBean.src,
                             true
                         )
-                        viewToAppend = videoPlayerStandard
+                        addOtherView(videoPlayerStandard)
                     } else {
                         val videoImageView = MyImageView(context)
                         videoImageView.layoutParams =
@@ -394,10 +348,10 @@ class PostListAdapterHelper(
                         videoImageView.setOnClickListener {
                             WebViewActivity.launch(context, contentBean.text)
                         }
-                        viewToAppend = videoImageView
+                        addOtherView(videoImageView)
                     }
                 } else {
-                    textToAppend.append(getLinkContent("[视频] " + contentBean.text, contentBean.text!!))
+                    getOrCreateTextView().append(getLinkContent("[视频] " + contentBean.text, contentBean.text!!))
                 }
                 "10" -> {
                     val voiceUrl =
@@ -409,7 +363,7 @@ class PostListAdapterHelper(
                     )
                     voicePlayerView.duration = Integer.valueOf(contentBean.duringTime!!)
                     voicePlayerView.url = voiceUrl
-                    viewToAppend = voicePlayerView
+                    addOtherView(voicePlayerView)
                 }
                 "20" -> {
                     val memeImageView = MyImageView(context)
@@ -421,18 +375,16 @@ class PostListAdapterHelper(
                         memeImageView,
                         PhotoViewBean(contentBean.src, contentBean.src, false)
                     )
-                    viewToAppend = memeImageView
+                    addOtherView(memeImageView)
                 }
                 else -> {
                 }
             }
-            if (viewToAppend != null) {
-                addTextView()
-                views.add(viewToAppend)
-                viewToAppend = null
-            }
         }
-        addTextView()
+        if (textView != null) {
+            views.add(textView!!)
+            emotionLoader.into(textView!!)
+        }
         return views
     }
 

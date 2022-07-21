@@ -173,9 +173,8 @@ class SearchPostActivity : BaseActivity() {
 
     override fun onBackPressed() {
         if (state == State.SEARCH) {
-            state = State.INPUT
             editText.text = null
-            invalidateState()
+            state = State.INPUT
             KeyboardUtil.showKeyboard(editText)
         } else {
             finish()

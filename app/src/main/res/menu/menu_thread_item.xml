@@ -21,4 +21,8 @@
         android:icon="@drawable/ic_round_delete"
         android:title="@string/title_delete_post"
         android:visible="false" />
+    <item
+        android:id="@+id/menu_view_floor"
+        android:icon="@drawable/ic_document_18dp"
+        android:title="@string/title_view_floor" />
 </menu>

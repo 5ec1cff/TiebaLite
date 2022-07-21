@@ -32,12 +32,10 @@ import com.huanchengfly.tieba.post.components.spans.MyUserSpan;
 import com.huanchengfly.tieba.post.fragments.ConfirmDialogFragment;
 import com.huanchengfly.tieba.post.fragments.MenuDialogFragment;
 import com.huanchengfly.tieba.post.models.PhotoViewBean;
-import com.huanchengfly.tieba.post.models.ReplyInfoBean;
 import com.huanchengfly.tieba.post.plugins.PluginManager;
 import com.huanchengfly.tieba.post.utils.AccountUtil;
 import com.huanchengfly.tieba.post.utils.BilibiliUtil;
 import com.huanchengfly.tieba.post.utils.DateTimeUtils;
-import com.huanchengfly.tieba.post.utils.EmotionManager;
 import com.huanchengfly.tieba.post.utils.EmotionUtil;
 import com.huanchengfly.tieba.post.utils.ImageUtil;
 import com.huanchengfly.tieba.post.utils.NavigationHelper;
@@ -331,6 +329,7 @@ public class RecyclerFloorAdapter extends BaseSingleTypeAdapter<SubFloorListBean
                 }
                 break;
                 case "1":
+                case "18":
                     if (appendLinkToLastTextView(views, contentBean.getText(), contentBean.getLink())) {
                         TextView textView = createTextView(TEXT_VIEW_TYPE_CONTENT);
                         textView.setLayoutParams(getLayoutParams(contentBean));
