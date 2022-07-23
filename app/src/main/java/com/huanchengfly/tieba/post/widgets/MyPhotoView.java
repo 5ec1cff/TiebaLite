@@ -2,8 +2,9 @@ package com.huanchengfly.tieba.post.widgets;
 
 import android.content.Context;
 import android.graphics.Canvas;
+import android.os.Handler;
+import android.os.Looper;
 import android.util.AttributeSet;
-import android.util.Log;
 import android.view.MotionEvent;
 
 import com.bm.library.PhotoView;
@@ -15,39 +16,40 @@ public class MyPhotoView extends PhotoView {
 
     protected OnPhotoErrorListener onPhotoErrorListener;
     protected OnDispatchTouchEvent onDispatchTouchEvent;
-    private int startX;
+    private int startX, startY;
+    private final Handler mHandler;
+    private final Runnable mLongClickRunnable = this::performLongClick;
 
     public MyPhotoView(Context context) {
-        super(context);
+        this(context, null, 0);
     }
 
     public MyPhotoView(Context context, AttributeSet attrs) {
-        super(context, attrs);
+        this(context, attrs, 0);
     }
 
     public MyPhotoView(Context context, AttributeSet attrs, int defStyleAttr) {
         super(context, attrs, defStyleAttr);
+        mHandler = new Handler(Looper.getMainLooper());
     }
 
     public OnDispatchTouchEvent getOnDispatchTouchEvent() {
         return onDispatchTouchEvent;
     }
 
-    public MyPhotoView setOnDispatchTouchEvent(OnDispatchTouchEvent onDispatchTouchEvent) {
+    public void setOnDispatchTouchEvent(OnDispatchTouchEvent onDispatchTouchEvent) {
         this.onDispatchTouchEvent = onDispatchTouchEvent;
-        return this;
     }
 
     public OnPhotoErrorListener getOnPhotoErrorListener() {
         return onPhotoErrorListener;
     }
 
-    public MyPhotoView setOnPhotoErrorListener(OnPhotoErrorListener onPhotoErrorListener) {
+    public void setOnPhotoErrorListener(OnPhotoErrorListener onPhotoErrorListener) {
         this.onPhotoErrorListener = onPhotoErrorListener;
-        return this;
     }
 
-    int shouldDisallowIntercept = 0;
+    private boolean mIsScrollingHorizontally = false;
 
     @Override
     public boolean dispatchTouchEvent(MotionEvent event) {
@@ -57,20 +59,34 @@ public class MyPhotoView extends PhotoView {
         switch (event.getAction()) {
             case MotionEvent.ACTION_DOWN:
                 startX = (int) event.getX();
+                startY = (int) event.getY();
+                mIsScrollingHorizontally = false;
                 getParent().requestDisallowInterceptTouchEvent(true);
-                shouldDisallowIntercept = 0;
+                mHandler.postDelayed(mLongClickRunnable, 500L);
                 break;
             case MotionEvent.ACTION_MOVE:
-                int endX = (int) event.getX();
-                if (shouldDisallowIntercept == 0) {
-                    if (event.getPointerCount() > 1) shouldDisallowIntercept = 1;
-                    else shouldDisallowIntercept = canScrollHorizontally(startX - endX) ? 1 : 2;
+                mHandler.removeCallbacks(mLongClickRunnable);
+                boolean shouldDisallowIntercept = false;
+                if (mIsScrollingHorizontally || event.getPointerCount() > 1) shouldDisallowIntercept = true;
+                else {
+                    int endX = (int) event.getX();
+                    int endY = (int) event.getY();
+                    int disX = Math.abs(endX - startX);
+                    int disY = Math.abs(endY - startY);
+                    if (disX > disY) {
+                        if (canScrollHorizontally(startX - endX)) {
+                            mIsScrollingHorizontally = true;
+                            shouldDisallowIntercept = true;
+                        }
+                    } else {
+                        shouldDisallowIntercept = true;
+                    }
                 }
-                Log.d("MyPhotoView", "shouldDisallowIntercept=" + shouldDisallowIntercept);
-                getParent().requestDisallowInterceptTouchEvent(shouldDisallowIntercept == 1);
+                getParent().requestDisallowInterceptTouchEvent(shouldDisallowIntercept);
                 break;
             case MotionEvent.ACTION_UP:
             case MotionEvent.ACTION_CANCEL:
+                mHandler.removeCallbacks(mLongClickRunnable);
                 getParent().requestDisallowInterceptTouchEvent(false);
                 break;
         }
