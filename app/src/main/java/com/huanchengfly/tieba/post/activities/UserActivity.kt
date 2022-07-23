@@ -31,10 +31,7 @@ import com.huanchengfly.tieba.post.goToActivity
 import com.huanchengfly.tieba.post.models.PhotoViewBean
 import com.huanchengfly.tieba.post.models.database.Block
 import com.huanchengfly.tieba.post.plugins.PluginManager
-import com.huanchengfly.tieba.post.utils.AccountUtil
-import com.huanchengfly.tieba.post.utils.ImageUtil
-import com.huanchengfly.tieba.post.utils.StatusBarUtil
-import com.huanchengfly.tieba.post.utils.ThemeUtil
+import com.huanchengfly.tieba.post.utils.*
 import com.huanchengfly.tieba.post.widgets.theme.TintMaterialButton
 import com.huanchengfly.tieba.post.widgets.theme.TintToolbar
 import retrofit2.Call
@@ -64,6 +61,9 @@ class UserActivity : BaseActivity() {
 
     @BindView(R.id.user_center_stat_fans)
     lateinit var fansStatTv: TextView
+
+    @BindView(R.id.user_center_stat_age)
+    lateinit var ageStatTv: TextView
 
     @BindView(R.id.user_sex)
     lateinit var sexTv: TextView
@@ -122,9 +122,11 @@ class UserActivity : BaseActivity() {
             headerView.alpha = 1f - percent
             headerMaskView.alpha = percent
             if (profileBean != null && profileBean!!.user != null && abs(verticalOffset) >= appBarLayout.totalScrollRange) {
-                toolbar.title = profileBean!!.user!!.nameShow
+                if (toolbar.title == null)
+                    toolbar.title = profileBean!!.user!!.nameShow
             } else {
-                toolbar.title = null
+                if (toolbar.title != null)
+                    toolbar.title = null
             }
         })
         viewPager.adapter = adapter
@@ -160,17 +162,19 @@ class UserActivity : BaseActivity() {
         })
         listOf(
             followStatTv,
-            fansStatTv
+            fansStatTv,
+            ageStatTv
         ).forEach {
             it.typeface = Typeface.createFromAsset(assets, "bebas.ttf")
         }
     }
 
     fun refreshHeader() {
-        titleView.text = profileBean!!.user!!.nameShow
+        titleView.text = StringUtil.getUsernameString(this, profileBean!!.user!!.name, profileBean!!.user!!.nameShow)
         sloganView.text = profileBean!!.user!!.intro
         followStatTv.text = "${profileBean!!.user!!.concernNum}"
         fansStatTv.text = "${profileBean!!.user!!.fansNum}"
+        ageStatTv.text = "${profileBean!!.user!!.tbAge}"
         //getString(R.string.tip_stat, profileBean!!.user!!.concernNum, profileBean!!.user!!.fansNum)
         if (avatarView.tag == null) {
             ImageUtil.load(
@@ -192,8 +196,11 @@ class UserActivity : BaseActivity() {
                 actionBtn.setText(R.string.button_follow)
             }
         }
-        sexTv.text =
-            if (profileBean!!.user!!.sex == "1") "♂" else if (profileBean!!.user!!.sex == "2") "♀" else "?"
+        sexTv.text = when (profileBean!!.user!!.sex) {
+            "1" -> "♂"
+            "2" -> "♀"
+            else -> "?"
+        }
     }
 
     override fun onCreateOptionsMenu(menu: Menu): Boolean {

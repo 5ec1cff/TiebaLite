@@ -225,6 +225,7 @@ open class ThreadContentViewHelper(private val mContext: Context) {
                     )
                     appendView(memeImageView)
                 }
+                else -> contentBean.text?.let { appendText(it) }
             }
         }
         appendTextView()

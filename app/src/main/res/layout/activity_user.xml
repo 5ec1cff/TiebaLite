@@ -174,6 +174,26 @@
                             android:textSize="14sp"
                             android:textStyle="bold"
                             app:tint="@color/color_text_translucent_light" />
+
+                        <com.huanchengfly.tieba.post.widgets.theme.TintTextView
+                            android:id="@+id/user_center_stat_age"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_marginStart="16dp"
+                            android:layout_marginBottom="-1dp"
+                            android:textSize="14sp"
+                            android:textStyle="bold"
+                            app:tint="@color/color_text_translucent_light"
+                            tools:text="0" />
+
+                        <com.huanchengfly.tieba.post.widgets.theme.TintTextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_marginStart="4dp"
+                            android:text="@string/text_stat_age"
+                            android:textSize="14sp"
+                            android:textStyle="bold"
+                            app:tint="@color/color_text_translucent_light" />
                     </LinearLayout>
                 </LinearLayout>
 
