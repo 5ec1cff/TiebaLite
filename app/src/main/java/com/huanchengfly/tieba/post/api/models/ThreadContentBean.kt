@@ -2,9 +2,7 @@ package com.huanchengfly.tieba.post.api.models
 
 import com.google.gson.annotations.JsonAdapter
 import com.google.gson.annotations.SerializedName
-import com.huanchengfly.tieba.post.api.adapters.ContentMsgAdapter
-import com.huanchengfly.tieba.post.api.adapters.PortraitAdapter
-import com.huanchengfly.tieba.post.api.adapters.SubPostListAdapter
+import com.huanchengfly.tieba.post.api.adapters.*
 import com.huanchengfly.tieba.post.models.BaseBean
 
 data class ThreadContentBean(
@@ -90,6 +88,52 @@ data class ThreadContentBean(
         @SerializedName("thread_id")
         val threadId: String? = null,
         val agree: AgreeBean? = null,
+        @SerializedName("poll_info")
+        val pollInfo: PollInfoBean? = null
+    ): BaseBean()
+
+    data class PollOptionBean(
+        val id: String,
+        val num: Int,
+        val text: String
+    ): BaseBean()
+
+    data class PollInfoBean(
+        val title: String,
+        @SerializedName("options_count")
+        @JsonAdapter(StringToIntAdapter::class)
+        val optionsCount: Int,
+        val options: List<PollOptionBean>,
+        @SerializedName("end_time")
+        val endTime: String,
+        /**
+         * 是否多选
+         */
+        @SerializedName("is_multi")
+        @JsonAdapter(StringToBooleanAdapter::class)
+        val isMulti: Boolean,
+        /**
+         * 是否投票过
+         */
+        @SerializedName("is_polled")
+        @JsonAdapter(StringToBooleanAdapter::class)
+        val isPolled: Boolean,
+        @SerializedName("last_time")
+        val lastTime: String,
+        @SerializedName("polled_value")
+        val polledValue: String,
+        /**
+         * 投票人数
+         */
+        @SerializedName("total_num")
+        @JsonAdapter(StringToIntAdapter::class)
+        val totalNum: Int,
+        /**
+         * 投票票数
+         */
+        @SerializedName("total_poll")
+        @JsonAdapter(StringToIntAdapter::class)
+        val totalPoll: Int
     ): BaseBean()
 
     data class UserInfoBean(

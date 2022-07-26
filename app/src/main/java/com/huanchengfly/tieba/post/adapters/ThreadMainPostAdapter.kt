@@ -2,15 +2,18 @@ package com.huanchengfly.tieba.post.adapters
 
 import android.content.Context
 import android.content.Intent
+import android.graphics.Typeface
+import android.text.Spannable
 import android.text.SpannableStringBuilder
 import android.text.Spanned
 import android.text.TextUtils
-import android.view.Menu
-import android.view.MenuItem
-import android.view.View
-import android.view.ViewGroup
+import android.text.style.ForegroundColorSpan
+import android.text.style.StyleSpan
+import android.view.*
 import android.widget.ImageView
 import android.widget.TextView
+import androidx.recyclerview.widget.LinearLayoutManager
+import androidx.recyclerview.widget.RecyclerView
 import com.alibaba.android.vlayout.DelegateAdapter
 import com.alibaba.android.vlayout.LayoutHelper
 import com.alibaba.android.vlayout.layout.SingleLayoutHelper
@@ -152,10 +155,39 @@ class ThreadMainPostAdapter(
             timeText
         )
         holder.setText(R.id.thread_list_item_content_title, title)
+        val views = mutableListOf<View>()
         if (threadPostBean != null) {
+            helper.getContentViews(threadPostBean!!, views)
+        }
+        threadBean.pollInfo?.let { pollInfoBean ->
+            LayoutInflater.from(context).inflate(R.layout.layout_poll, null).apply {
+                layoutParams = ViewGroup.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT)
+                findViewById<RecyclerView>(R.id.poll_items).apply {
+                    adapter = PollAdapter(pollInfoBean)
+                }
+                val pollDesc = SpannableStringBuilder()
+                    .append("投票", RoundBackgroundColorSpan(
+                        context,
+                        Util.alphaColor(ThemeUtils.getColorByAttr(context, R.attr.colorAccent), 30),
+                        ThemeUtils.getColorByAttr(context, R.attr.colorAccent),
+                        DisplayUtil.dp2px(context, 10f).toFloat()
+                    ), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE)
+                    .append(" ")
+                    .append(pollInfoBean.title, StyleSpan(Typeface.BOLD), Spannable.SPAN_EXCLUSIVE_EXCLUSIVE)
+                    .append("\n")
+                    .append("${if (pollInfoBean.isMulti) "多选" else "单选"} ${pollInfoBean.totalNum}人参与 共${pollInfoBean.totalPoll}票（当前不支持投票）",
+                    ForegroundColorSpan(ThemeUtils.getColorByAttr(context, R.attr.color_text_disabled)),
+                    Spannable.SPAN_EXCLUSIVE_EXCLUSIVE
+                )
+                findViewById<TextView>(R.id.poll_desc).text = pollDesc
+                views.add(this)
+            }
+
+        }
+        if (views.isNotEmpty()) {
             holder.getView<MyLinearLayout>(R.id.thread_list_item_content_content).apply {
                 removeAllViews()
-                addViews(helper.getContentViews(threadPostBean!!))
+                addViews(views)
             }
         }
     }

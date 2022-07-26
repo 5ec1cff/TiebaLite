@@ -20,7 +20,7 @@ if (isPerVersion) {
 project.ext.set("archivesBaseName",  "${applicationVersionName}(${applicationVersionCode})".toString())
 
 android {
-    compileSdkVersion 31
+    compileSdkVersion 32
     buildToolsVersion '31.0.0'
     defaultConfig {
         applicationId "com.huanchengfly.tieba.post"
@@ -166,6 +166,21 @@ dependencies {
     implementation "com.microsoft.appcenter:appcenter-analytics:${appCenterSdkVersion}"
     implementation "com.microsoft.appcenter:appcenter-crashes:${appCenterSdkVersion}"
     implementation "com.microsoft.appcenter:appcenter-distribute:${appCenterSdkVersion}"
+
+    def lifecycle_version = "2.6.0-alpha01"
+
+    // ViewModel
+    implementation "androidx.lifecycle:lifecycle-viewmodel-ktx:$lifecycle_version"
+    // LiveData
+    implementation "androidx.lifecycle:lifecycle-livedata-ktx:$lifecycle_version"
+    // Lifecycles only (without ViewModel or LiveData)
+    implementation "androidx.lifecycle:lifecycle-runtime-ktx:$lifecycle_version"
+
+    // Saved state module for ViewModel
+    implementation "androidx.lifecycle:lifecycle-viewmodel-savedstate:$lifecycle_version"
+
+    // Annotation processor
+    implementation "androidx.lifecycle:lifecycle-common-java8:$lifecycle_version"
 }
 
 protobuf {

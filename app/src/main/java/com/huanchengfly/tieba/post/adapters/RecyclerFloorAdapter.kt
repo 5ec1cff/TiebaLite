@@ -180,14 +180,17 @@ class RecyclerFloorAdapter(context: Context) : BaseSingleTypeAdapter<PostInfo>(c
         return R.layout.item_thread_list
     }
 
-    private fun getContentViews(postListItemBean: PostInfo): List<View> =
-        helper.getContentViews(postListItemBean.content, postListItemBean.floor)
+    private fun getContentViews(postListItemBean: PostInfo, outList: MutableList<View>) {
+        helper.getContentViews(postListItemBean.content, postListItemBean.floor, outList)
+    }
 
     private fun initContentView(viewHolder: MyViewHolder, postListItemBean: PostInfo) {
         val myLinearLayout =
             viewHolder.getView<MyLinearLayout>(R.id.thread_list_item_content_content)
         myLinearLayout.removeAllViews()
-        myLinearLayout.addViews(getContentViews(postListItemBean))
+        val views = mutableListOf<View>()
+        getContentViews(postListItemBean, views)
+        myLinearLayout.addViews(views)
     }
 
     companion object {

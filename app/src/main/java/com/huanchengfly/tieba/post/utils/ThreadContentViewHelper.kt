@@ -128,7 +128,7 @@ open class ThreadContentViewHelper(private val mContext: Context) {
         }
     }
     
-    open fun getContentViews(contentBeans: List<ThreadContentBean.ContentBean>, floor: String): List<View> {
+    open fun getContentViews(contentBeans: List<ThreadContentBean.ContentBean>, floor: String, outList: MutableList<View>) {
         mViews.clear()
         mCurrentText = null
         for (contentBean in contentBeans) {
@@ -229,6 +229,6 @@ open class ThreadContentViewHelper(private val mContext: Context) {
             }
         }
         appendTextView()
-        return mViews
+        outList.addAll(mViews)
     }
 }

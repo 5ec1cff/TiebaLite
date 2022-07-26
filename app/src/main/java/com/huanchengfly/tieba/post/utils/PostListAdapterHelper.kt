@@ -198,7 +198,13 @@ class PostListAdapterHelper(
         }
     }
 
+    fun getContentViews(postListItemBean: PostListItemBean, outList: MutableList<View>) {
+        super.getContentViews(postListItemBean.content!!, postListItemBean.floor!!, outList)
+    }
+
     fun getContentViews(postListItemBean: PostListItemBean): List<View> =
-        super.getContentViews(postListItemBean.content!!, postListItemBean.floor!!)
+        mutableListOf<View>().also {
+            getContentViews(postListItemBean.content!!, postListItemBean.floor!!, it)
+        }
 
 }
