@@ -25,7 +25,7 @@ import com.huanchengfly.tieba.post.databinding.ActivityThreadBinding
 import com.huanchengfly.tieba.post.fragments.threadmenu.IThreadMenuFragment
 import com.huanchengfly.tieba.post.fragments.threadmenu.MIUIThreadMenuFragment
 import com.huanchengfly.tieba.post.toastShort
-import com.huanchengfly.tieba.post.ui.theme.utils.ThemeUtils
+import com.huanchengfly.tieba.post.ui.common.theme.utils.ThemeUtils
 import com.huanchengfly.tieba.post.utils.ThemeUtil
 import com.huanchengfly.tieba.post.utils.TiebaUtil
 import com.huanchengfly.tieba.post.utils.Util

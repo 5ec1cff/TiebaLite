@@ -5,25 +5,23 @@ import android.text.*
 import android.text.style.ForegroundColorSpan
 import android.widget.TextView
 import com.huanchengfly.tieba.post.R
-import com.huanchengfly.tieba.post.components.spans.EmotionSpanV2
+import com.huanchengfly.tieba.post.components.spans.EmotionSpan
 import com.huanchengfly.tieba.post.ui.common.theme.utils.ThemeUtils
-import com.huanchengfly.tieba.post.utils.EmotionManager.getEmotionDrawable
-import com.huanchengfly.tieba.post.utils.EmotionManager.getEmotionIdByName
 import java.util.regex.Pattern
 import kotlin.math.roundToInt
 
 object StringUtil {
-    @JvmStatic
     fun getEmotionContent(
         emotion_map_type: Int,
         tv: TextView,
         source: CharSequence?
-    ): SpannableString {
+    ): SpannableString? {
         return try {
             if (source == null) {
                 return SpannableString("")
             }
-            val spannableString: SpannableString = if (source is SpannableString) {
+            val spannableString: SpannableString
+            spannableString = if (source is SpannableString) {
                 source
             } else {
                 SpannableString(source)
@@ -34,12 +32,16 @@ object StringUtil {
             while (matcherEmotion.find()) {
                 val key = matcherEmotion.group()
                 val start = matcherEmotion.start()
-                val group1 = matcherEmotion.group(1) ?: ""
-                val emotionDrawable = getEmotionDrawable(tv.context, getEmotionIdByName(group1))
-                if (emotionDrawable != null) {
+                val imgRes = EmotionUtil.getImgByName(emotion_map_type, key)
+                if (imgRes != -1) {
                     val paint = tv.paint
-                    val size = (-paint.ascent() + paint.descent()).roundToInt()
-                    val span = EmotionSpanV2(emotionDrawable, size)
+                    val size = Math.round(-paint.ascent() + paint.descent())
+                    /*
+                         Bitmap bitmap = BitmapFactory.decodeResource(res, imgRes);
+                         Bitmap scaleBitmap = Bitmap.createScaledBitmap(bitmap, size, size, true);
+                         ImageSpan span = new MyImageSpan(context, scaleBitmap);
+                         */
+                    val span = EmotionSpan(tv.context, imgRes, size)
                     spannableString.setSpan(
                         span,
                         start,
@@ -49,9 +51,10 @@ object StringUtil {
                 }
             }
             spannableString
-        } catch (e: Exception) {
+        } catch (e: java.lang.Exception) {
             e.printStackTrace()
-            val spannableString: SpannableString = if (source is SpannableString) {
+            val spannableString: SpannableString
+            spannableString = if (source is SpannableString) {
                 source
             } else {
                 SpannableString(source)

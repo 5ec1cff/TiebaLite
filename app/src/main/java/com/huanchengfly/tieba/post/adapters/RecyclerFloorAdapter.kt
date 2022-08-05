@@ -146,7 +146,7 @@ class RecyclerFloorAdapter(context: Context) : BaseSingleTypeAdapter<PostInfo>(c
             R.id.thread_list_item_user_name,
             StringUtil.getUsernameString(
                 context,
-                userInfoBean.name,
+                userInfoBean.name!!,
                 userInfoBean.nameShow
             )
         )

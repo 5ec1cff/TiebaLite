@@ -1,18 +1,13 @@
 package com.huanchengfly.tieba.post.widgets.theme
 
-import android.app.Activity
 import android.content.Context
-import android.text.TextUtils
 import android.util.AttributeSet
-import android.util.Log
 import android.view.KeyEvent
 import androidx.appcompat.widget.AppCompatEditText
 import com.huanchengfly.tieba.post.R
 import com.huanchengfly.tieba.post.ui.common.theme.interfaces.Tintable
 import com.huanchengfly.tieba.post.ui.common.theme.utils.ColorStateListUtils
 import com.huanchengfly.tieba.post.interfaces.OnBackPressedListener
-import com.huanchengfly.tieba.post.ui.theme.interfaces.Tintable
-import com.huanchengfly.tieba.post.ui.theme.utils.ColorStateListUtils
 
 class TintTextInputEditText @JvmOverloads constructor(
     context: Context, attrs: AttributeSet? = null, defStyleAttr: Int = R.attr.editTextStyle

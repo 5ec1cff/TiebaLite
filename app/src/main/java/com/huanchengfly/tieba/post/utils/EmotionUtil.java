@@ -225,7 +225,7 @@ public class EmotionUtil {
                     sb.insert(curPosition, emotionName);
 
                     // 特殊文字处理,将表情等转换一下
-                    mEditText.setText(StringUtil.getEmotionContent(emotion_map_type,
+                    mEditText.setText(StringUtil.INSTANCE.getEmotionContent(emotion_map_type,
                             mEditText, sb));
 
                     // 将光标设置到新增完表情的右侧

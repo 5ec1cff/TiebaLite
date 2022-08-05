@@ -544,5 +544,4 @@
     <string name="checked">已选中</string>
     <string name="title_copy_json">复制 json</string>
     <string name="title_view_floor">查看当前楼层</string>
-    <string name="text_stat_age">年吧龄</string>
 </resources>

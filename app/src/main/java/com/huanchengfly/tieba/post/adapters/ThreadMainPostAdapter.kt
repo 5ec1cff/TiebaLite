@@ -20,11 +20,7 @@ import com.huanchengfly.tieba.post.activities.ForumActivity.Companion.launch
 import com.huanchengfly.tieba.post.api.models.ThreadContentBean
 import com.huanchengfly.tieba.post.components.MyViewHolder
 import com.huanchengfly.tieba.post.components.spans.RoundBackgroundColorSpan
-import com.huanchengfly.tieba.post.fragments.MenuDialogFragment
-import com.huanchengfly.tieba.post.models.ReplyInfoBean
-import com.huanchengfly.tieba.post.plugins.PluginManager
 import com.huanchengfly.tieba.post.ui.common.theme.utils.ThemeUtils
-import com.huanchengfly.tieba.post.ui.theme.utils.ThemeUtils
 import com.huanchengfly.tieba.post.utils.*
 import com.huanchengfly.tieba.post.widgets.MyLinearLayout
 

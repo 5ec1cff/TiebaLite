@@ -114,7 +114,7 @@ class ThreadViewModel : ViewModel() {
                         continue
                     }
                     val url = ImageUtil.getUrl(
-                        BaseApplication.instance,
+                        BaseApplication.INSTANCE,
                         true,
                         contentBean.originSrc,
                         contentBean.bigCdnSrc,

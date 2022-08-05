@@ -26,7 +26,7 @@ import com.huanchengfly.tieba.post.databinding.ItemThreadListBinding
 import com.huanchengfly.tieba.post.databinding.ItemThreadListPostBinding
 import com.huanchengfly.tieba.post.fragments.FloorFragment
 import com.huanchengfly.tieba.post.models.PhotoViewBean
-import com.huanchengfly.tieba.post.ui.theme.utils.ThemeUtils
+import com.huanchengfly.tieba.post.ui.common.theme.utils.ThemeUtils
 import com.huanchengfly.tieba.post.utils.*
 import com.huanchengfly.tieba.post.viewmodels.PostItem
 import com.huanchengfly.tieba.post.widgets.MyLinearLayout
@@ -238,7 +238,7 @@ class ThreadPagingAdapter(
     private fun getUserName(context: Context, userInfoBean: ThreadContentBean.UserInfoBean): CharSequence {
         var username = StringUtil.getUsernameString(
             context,
-            userInfoBean.name,
+            userInfoBean.name!!,
             userInfoBean.nameShow
         )
         if (userInfoBean.isBawu == "1") {

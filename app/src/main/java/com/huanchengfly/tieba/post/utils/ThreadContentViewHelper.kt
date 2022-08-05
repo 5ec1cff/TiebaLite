@@ -21,7 +21,7 @@ import com.huanchengfly.tieba.post.components.spans.MyURLSpan
 import com.huanchengfly.tieba.post.components.spans.MyUserSpan
 import com.huanchengfly.tieba.post.components.spans.RoundBackgroundColorSpan
 import com.huanchengfly.tieba.post.models.PhotoViewBean
-import com.huanchengfly.tieba.post.ui.theme.utils.ThemeUtils
+import com.huanchengfly.tieba.post.ui.common.theme.utils.ThemeUtils
 import com.huanchengfly.tieba.post.widgets.MyImageView
 import com.huanchengfly.tieba.post.widgets.VideoPlayerStandard
 import com.huanchengfly.tieba.post.widgets.VoicePlayerView

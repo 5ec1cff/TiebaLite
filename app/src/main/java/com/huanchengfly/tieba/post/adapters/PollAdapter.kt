@@ -13,7 +13,7 @@ import android.widget.TextView
 import androidx.recyclerview.widget.RecyclerView
 import com.huanchengfly.tieba.post.R
 import com.huanchengfly.tieba.post.api.models.ThreadContentBean
-import com.huanchengfly.tieba.post.ui.theme.utils.ThemeUtils
+import com.huanchengfly.tieba.post.ui.common.theme.utils.ThemeUtils
 
 class PollAdapter(private val pollInfo: ThreadContentBean.PollInfoBean) : RecyclerView.Adapter<PollAdapter.ViewHolder>() {
     class ViewHolder(itemView: View) : RecyclerView.ViewHolder(itemView)

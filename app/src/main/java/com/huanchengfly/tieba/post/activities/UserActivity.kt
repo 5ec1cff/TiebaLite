@@ -184,12 +184,10 @@ class UserActivity : BaseActivity() {
     }
 
     fun refreshHeader() {
-        titleView.text = StringUtil.getUsernameString(this, profileBean!!.user!!.name, profileBean!!.user!!.nameShow)
+        titleView.text = StringUtil.getUsernameString(this, profileBean!!.user!!.name!!, profileBean!!.user!!.nameShow)
         sloganView.text = profileBean!!.user!!.intro
         followStatTv.text = "${profileBean!!.user!!.concernNum}"
         fansStatTv.text = "${profileBean!!.user!!.fansNum}"
-        ageStatTv.text = "${profileBean!!.user!!.tbAge}"
-        //getString(R.string.tip_stat, profileBean!!.user!!.concernNum, profileBean!!.user!!.fansNum)
         if (avatarView.tag == null) {
             ImageUtil.load(
                 avatarView,
