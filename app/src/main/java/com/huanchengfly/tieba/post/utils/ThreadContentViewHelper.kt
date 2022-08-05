@@ -9,14 +9,17 @@ import android.view.View
 import android.view.ViewGroup
 import android.widget.ImageView
 import android.widget.LinearLayout
+import android.widget.RelativeLayout
 import android.widget.TextView
 import com.huanchengfly.tieba.post.R
+import com.huanchengfly.tieba.post.activities.ReplyActivity
 import com.huanchengfly.tieba.post.activities.WebViewActivity
 import com.huanchengfly.tieba.post.api.models.ThreadContentBean
 import com.huanchengfly.tieba.post.components.LinkTouchMovementMethod
 import com.huanchengfly.tieba.post.components.spans.MyImageSpan
 import com.huanchengfly.tieba.post.components.spans.MyURLSpan
 import com.huanchengfly.tieba.post.components.spans.MyUserSpan
+import com.huanchengfly.tieba.post.components.spans.RoundBackgroundColorSpan
 import com.huanchengfly.tieba.post.models.PhotoViewBean
 import com.huanchengfly.tieba.post.ui.theme.utils.ThemeUtils
 import com.huanchengfly.tieba.post.widgets.MyImageView
@@ -36,13 +39,17 @@ open class ThreadContentViewHelper(private val mContext: Context) {
         const val CONTENT_TYPE_VOICE = "10"
         const val CONTENT_TYPE_HASHTAG = "18" // link
         const val CONTENT_TYPE_MEME_IMAGE = "20"
+
+        private val defaultLayoutParams: LinearLayout.LayoutParams = LinearLayout.LayoutParams(
+            ViewGroup.LayoutParams.MATCH_PARENT,
+            ViewGroup.LayoutParams.WRAP_CONTENT
+        ).apply { setMargins(0, 8, 0, 8) }
+        private val defaultLayoutParamsWithNoMargins = LinearLayout.LayoutParams(
+            ViewGroup.LayoutParams.MATCH_PARENT,
+            ViewGroup.LayoutParams.WRAP_CONTENT
+        )
     }
 
-    private val defaultLayoutParams: LinearLayout.LayoutParams = LinearLayout.LayoutParams(
-        ViewGroup.LayoutParams.MATCH_PARENT,
-        ViewGroup.LayoutParams.WRAP_CONTENT
-    ).apply { setMargins(0, 8, 0, 8) }
-    
     protected open fun onCreateTextView(): TextView = TintMySpannableTextView(mContext).apply {
         setTintResId(R.color.default_color_text)
         setLinkTouchMovementMethod(LinkTouchMovementMethod.getInstance())
@@ -55,7 +62,7 @@ open class ThreadContentViewHelper(private val mContext: Context) {
         letterSpacing = 0.02f
         textSize = 16f
     }
-    
+
     protected open fun onInitImageView(view: ImageView, contentBean: ThreadContentBean.ContentBean) {}
 
     protected open fun onCreateLayoutParams(
@@ -127,7 +134,7 @@ open class ThreadContentViewHelper(private val mContext: Context) {
             mCurrentText = null
         }
     }
-    
+
     open fun getContentViews(contentBeans: List<ThreadContentBean.ContentBean>, floor: String, outList: MutableList<View>) {
         mViews.clear()
         mCurrentText = null
@@ -230,5 +237,83 @@ open class ThreadContentViewHelper(private val mContext: Context) {
         }
         appendTextView()
         outList.addAll(mViews)
+    }
+
+    open fun getContentViewForSubPosts(
+        subPostList: List<ThreadContentBean.PostListItemBean>,
+        postListItemBean: ThreadContentBean.PostListItemBean,
+        dataBean: ThreadContentBean,
+        userInfoBeanMap: MutableMap<String, ThreadContentBean.UserInfoBean>): List<View> {
+        val threadBean = dataBean.thread!!
+        for (subPostListItemBean in subPostList) {
+            val userInfoBean = userInfoBeanMap[subPostListItemBean.authorId]
+            if (userInfoBean?.id != null) {
+                appendText(onCreateUserContent(
+                    userInfoBean.nameShow ?: userInfoBean.name,
+                    userInfoBean.id))
+                if (threadBean.author != null && userInfoBean.id == threadBean.author.id) {
+                    appendText(" ")
+                    appendText(SpannableStringBuilder().append("楼主", RoundBackgroundColorSpan(
+                        mContext,
+                        Util.alphaColor(ThemeUtils.getColorByAttr(mContext, R.attr.colorAccent), 30),
+                        ThemeUtils.getColorByAttr(mContext, R.attr.colorAccent),
+                        DisplayUtil.dp2px(mContext, 10f).toFloat()
+                    ), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE))
+                    appendText(" ")
+                }
+            }
+            appendText(":")
+            if (subPostListItemBean.content?.first()?.type == CONTENT_TYPE_VOICE) {
+                val voiceUrl =
+                    "http://c.tieba.baidu.com/c/p/voice?voice_md5=" + subPostListItemBean.content[0].voiceMD5 + "&play_from=pb_voice_play"
+                val container = RelativeLayout(mContext)
+                container.layoutParams = defaultLayoutParamsWithNoMargins
+                View.inflate(mContext, R.layout.layout_floor_audio, container)
+                val mTextView = container.findViewById<TextView>(R.id.floor_user)
+                val mVoicePlayerView = container.findViewById<VoicePlayerView>(R.id.floor_audio)
+                mVoicePlayerView.isMini = true
+                mTextView.text = mCurrentText
+                mCurrentText = null
+                mVoicePlayerView.duration = subPostListItemBean.content[0].duringTime!!.toInt()
+                mVoicePlayerView.url = voiceUrl
+                appendView(container)
+            } else {
+                for (contentBean in subPostListItemBean.content!!) {
+                    when (contentBean.type) {
+                        // text
+                        CONTENT_TYPE_TEXT, CONTENT_TYPE_TEXT_ALT ->
+                            appendText(onCreateText(contentBean.text!!))
+                        CONTENT_TYPE_LINK, CONTENT_TYPE_HASHTAG ->
+                            appendText(onCreateLinkContent(contentBean.text, contentBean.link!!))
+                        CONTENT_TYPE_USER ->
+                            appendText(onCreateUserContent(contentBean.text, contentBean.uid!!))
+                        CONTENT_TYPE_EMOTION -> {
+                            val (start, end) = appendText("#(${contentBean.c})")
+                            mEmotionLoader.add(contentBean.text!!, start, end)
+                        }
+                    }
+                }
+                appendTextView()
+            }
+            mViews.last().apply {
+                setPadding(DisplayUtil.dp2px(context, 8f), 8, DisplayUtil.dp2px(context, 8f), 8)
+                background = Util.getDrawableByAttr(context, R.attr.selectableItemBackground)
+                setOnClickListener {
+                    ReplyActivity.start(
+                        context, dataBean,
+                        postListItemBean.id,
+                        subPostListItemBean.id,
+                        postListItemBean.floor,
+                        if (userInfoBean != null) userInfoBean.nameShow else ""
+                    )
+                }
+                setOnLongClickListener {
+                    // TODO: deleteHandler
+                    showMenu(context, userInfoBean, dataBean, postListItemBean, subPostListItemBean)
+                    true
+                }
+            }
+        }
+        return mViews
     }
 }

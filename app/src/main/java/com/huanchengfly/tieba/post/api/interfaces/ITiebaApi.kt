@@ -774,4 +774,34 @@ interface ITiebaApi {
     fun checkReportPost(
         postId: String
     ): Call<CheckReportBean>
+
+    /**
+     * 贴页面
+     *
+     * @param threadId 贴 ID
+     * @param page 分页页码（从 1 开始）
+     * @param seeLz 是否只看楼主
+     * @param reverse 是否逆序
+     */
+    suspend fun threadContentSuspend(
+        threadId: String,
+        page: Int = 1,
+        seeLz: Boolean = false,
+        reverse: Boolean = false
+    ): ThreadContentBean
+
+    /**
+     * 贴页面
+     *
+     * @param threadId 贴 ID
+     * @param postId 回复 ID
+     * @param seeLz 是否只看楼主
+     * @param reverse 是否逆序
+     */
+    suspend fun threadContentSuspend(
+        threadId: String,
+        postId: String?,
+        seeLz: Boolean = false,
+        reverse: Boolean = false
+    ): ThreadContentBean
 }

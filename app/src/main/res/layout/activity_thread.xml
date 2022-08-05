@@ -8,7 +8,8 @@
     app:backgroundTint="@color/default_color_window_background"
     tools:context=".activities.ThreadActivity">
 
-    <include layout="@layout/layout_appbar" />
+    <include layout="@layout/layout_appbar"
+        android:id="@+id/app_bar_layout" />
 
     <com.scwang.smart.refresh.layout.SmartRefreshLayout
         android:id="@+id/thread_refresh_view"
@@ -41,6 +42,7 @@
 
     </com.scwang.smart.refresh.layout.SmartRefreshLayout>
 
-    <include layout="@layout/layout_thread_bottom_bar" />
+    <include layout="@layout/layout_thread_bottom_bar"
+        android:id="@+id/thread_bottom_bar_layout"/>
 
 </com.huanchengfly.tieba.post.widgets.theme.TintCoordinatorLayout>

@@ -131,6 +131,10 @@
             android:configChanges="screenSize|screenLayout|orientation|smallestScreenSize|keyboardHidden"
             android:windowSoftInputMode="adjustResize" />
         <activity
+            android:name=".activities.ThreadActivityV2"
+            android:configChanges="screenSize|screenLayout|orientation|smallestScreenSize|keyboardHidden"
+            android:windowSoftInputMode="adjustResize" />
+        <activity
             android:name=".activities.WebViewActivity"
             android:configChanges="screenSize|screenLayout|orientation|smallestScreenSize|keyboardHidden"
             android:windowSoftInputMode="adjustResize" />

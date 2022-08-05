@@ -1,7 +1,6 @@
 package com.huanchengfly.tieba.post.adapters
 
 import android.content.Context
-import android.content.Intent
 import android.graphics.Typeface
 import android.text.Spannable
 import android.text.SpannableStringBuilder
@@ -12,7 +11,6 @@ import android.text.style.StyleSpan
 import android.view.*
 import android.widget.ImageView
 import android.widget.TextView
-import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.alibaba.android.vlayout.DelegateAdapter
 import com.alibaba.android.vlayout.LayoutHelper

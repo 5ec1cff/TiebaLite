@@ -1,18 +1,15 @@
 package com.huanchengfly.tieba.post.adapters
 
 import android.content.Context
-import android.text.Spannable
 import android.text.SpannableStringBuilder
 import android.text.Spanned
 import android.text.TextUtils
-import android.util.Log
 import android.view.View
 import android.view.ViewGroup
 import android.widget.LinearLayout
 import android.widget.RelativeLayout
 import android.widget.TextView
 import android.widget.Toast
-import androidx.core.text.getSpans
 import com.alibaba.android.vlayout.layout.LinearLayoutHelper
 import com.huanchengfly.tieba.post.R
 import com.huanchengfly.tieba.post.activities.BaseActivity
@@ -25,7 +22,6 @@ import com.huanchengfly.tieba.post.api.models.ThreadContentBean
 import com.huanchengfly.tieba.post.api.models.ThreadContentBean.PostListItemBean
 import com.huanchengfly.tieba.post.components.LinkMovementClickMethod
 import com.huanchengfly.tieba.post.components.MyViewHolder
-import com.huanchengfly.tieba.post.components.spans.EmotionSpanV2
 import com.huanchengfly.tieba.post.components.spans.MyURLSpan
 import com.huanchengfly.tieba.post.components.spans.MyUserSpan
 import com.huanchengfly.tieba.post.components.spans.RoundBackgroundColorSpan
@@ -42,7 +38,6 @@ import com.huanchengfly.tieba.post.widgets.theme.TintTextView
 import retrofit2.Call
 import retrofit2.Callback
 import retrofit2.Response
-import java.util.*
 import kotlin.collections.ArrayList
 import kotlin.collections.HashMap
 

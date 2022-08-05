@@ -3,6 +3,7 @@ plugins {
     id "kotlin-android"
     id "kotlin-kapt"
     id 'com.google.protobuf'
+    id 'kotlin-parcelize'
 }
 
 def applicationProperties = new Properties()
@@ -33,6 +34,9 @@ android {
         vectorDrawables {
             useSupportLibrary true
         }
+    }
+    viewBinding {
+        enabled = true
     }
     signingConfigs {
         release {
@@ -181,6 +185,10 @@ dependencies {
 
     // Annotation processor
     implementation "androidx.lifecycle:lifecycle-common-java8:$lifecycle_version"
+
+    def paging_version = "3.1.1"
+    // Paging
+    implementation "androidx.paging:paging-runtime:$paging_version"
 }
 
 protobuf {

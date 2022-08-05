@@ -529,4 +529,24 @@ object MixedTiebaApiImpl : ITiebaApi {
                 "pid" to postId
             )
         )
+
+    override suspend fun threadContentSuspend(
+        threadId: String, page: Int, seeLz: Boolean, reverse: Boolean
+    ): ThreadContentBean = RetrofitTiebaApi.OFFICIAL_TIEBA_API.threadContentSuspend(
+        threadId,
+        page,
+        last = if (reverse) "1" else null,
+        r = if (reverse) "1" else null,
+        lz = if (seeLz) 1 else 0
+    )
+
+    override suspend fun threadContentSuspend(
+        threadId: String, postId: String?, seeLz: Boolean, reverse: Boolean
+    ): ThreadContentBean = RetrofitTiebaApi.OFFICIAL_TIEBA_API.threadContentSuspend(
+        threadId,
+        postId,
+        last = if (reverse) "1" else null,
+        r = if (reverse) "1" else null,
+        lz = if (seeLz) 1 else 0
+    )
 }

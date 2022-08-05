@@ -242,7 +242,7 @@ class BaseApplication : Application(), IApp {
             override fun onActivitySaveInstanceState(activity: Activity, outState: Bundle) {}
             override fun onActivityDestroyed(activity: Activity) {}
         })*/
-        if (BuildConfig.DEBUG) CrashUtil.CrashHandler.getInstance().init(this)
+        // if (BuildConfig.DEBUG) CrashUtil.CrashHandler.getInstance().init(this)
         PluginManager.init(this)
     }
 
