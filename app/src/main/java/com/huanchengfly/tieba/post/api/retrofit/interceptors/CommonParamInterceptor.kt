@@ -1,6 +1,7 @@
 package com.huanchengfly.tieba.post.api.retrofit.interceptors
 
 import com.huanchengfly.tieba.post.api.*
+import com.huanchengfly.tieba.post.api.retrofit.body.MyMultipartBody
 import okhttp3.FormBody
 import okhttp3.Interceptor
 import okhttp3.Response
@@ -20,12 +21,23 @@ class CommonParamInterceptor(private vararg val additionParams: ParamExpression)
             headers = headers.newBuilder().removeAll(Header.FORCE_PARAM).build()
         }
 
+        val noCommonParams = mutableListOf<String>()
+        val noCommonParamsHeader = headers[Header.NO_COMMON_PARAMS]
+        if (noCommonParamsHeader != null) {
+            noCommonParams.addAll(noCommonParamsHeader.split(","))
+            headers = headers.newBuilder().removeAll(Header.NO_COMMON_PARAMS).build()
+        }
+
         when {
             //如果是 GET 则添加到 Query
             request.method == Method.GET || forceQuery -> {
                 httpUrl = request.url.newBuilder().apply {
                     additionParams.forEachNonNull { name, value ->
-                        if (request.url.queryParameter(name) == null) addQueryParameter(name, value)
+                        if (request.url.queryParameter(name) == null &&
+                            !noCommonParams.contains(name)
+                        ) {
+                            addQueryParameter(name, value)
+                        }
                     }
                 }.build()
             }
@@ -34,7 +46,9 @@ class CommonParamInterceptor(private vararg val additionParams: ParamExpression)
             body == null || body.contentLength() == 0L -> {
                 body = FormBody.Builder().apply {
                     additionParams.forEachNonNull { name, value ->
-                        add(name, value)
+                        if (!noCommonParams.contains(name)) {
+                            add(name, value)
+                        }
                     }
                 }.build()
             }
@@ -43,14 +57,31 @@ class CommonParamInterceptor(private vararg val additionParams: ParamExpression)
             body is FormBody -> {
                 body = FormBody.Builder().addAllEncoded(body).apply {
                     additionParams.forEachNonNull { name, value ->
-                        if (!(request.body as FormBody).containsEncodedName(name)) add(name, value)
+                        if (!(request.body as FormBody).containsEncodedName(name) &&
+                            !noCommonParams.contains(name)
+                        ) {
+                            add(name, value)
+                        }
                     }
                 }.build()
             }
 
-            //如果方式不为 GET 且 Body 不为空或者为 FormBody 则无法添加公共参数
-            else -> {
+            body is MyMultipartBody -> {
+                val oldBody = body
+                body = oldBody.newBuilder()
+                    .addAllParts(oldBody).apply {
+                        additionParams.forEachNonNull { name, value ->
+                            if (!oldBody.contains(name) &&
+                                !noCommonParams.contains(name)
+                            ) {
+                                addFormDataPart(name, value)
+                            }
+                        }
+                    }.build()
             }
+
+            //如果方式不为 GET 且 Body 不为空或者为 FormBody 则无法添加公共参数
+            else -> {}
         }
 
         return chain.proceed(

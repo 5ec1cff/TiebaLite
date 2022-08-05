@@ -18,6 +18,7 @@ import androidx.appcompat.widget.Toolbar
 import androidx.viewpager2.widget.ViewPager2
 import androidx.viewpager2.widget.ViewPager2.OnPageChangeCallback
 import butterknife.BindView
+import com.github.piasy.biv.BigImageViewer
 import com.google.android.material.bottomappbar.BottomAppBar
 import com.huanchengfly.tieba.post.BaseApplication.ScreenInfo
 import com.huanchengfly.tieba.post.R
@@ -27,7 +28,7 @@ import com.huanchengfly.tieba.post.api.models.PicPageBean
 import com.huanchengfly.tieba.post.api.models.PicPageBean.ImgInfoBean
 import com.huanchengfly.tieba.post.fragments.PhotoViewFragment.OnChangeBottomBarVisibilityListener
 import com.huanchengfly.tieba.post.models.PhotoViewBean
-import com.huanchengfly.tieba.post.ui.theme.utils.ThemeUtils
+import com.huanchengfly.tieba.post.ui.common.theme.utils.ThemeUtils
 import com.huanchengfly.tieba.post.utils.AnimUtil
 import com.huanchengfly.tieba.post.utils.ImageUtil
 import retrofit2.Call
@@ -60,11 +61,19 @@ class PhotoViewActivity : BaseActivity(), OnChangeBottomBarVisibilityListener,
     private var threadId: String? = null
     private var objType: String? = null
 
+    override fun onDestroy() {
+        super.onDestroy()
+        BigImageViewer.imageLoader().cancelAll()
+    }
+
     private fun loadMore() {
-        if (loadFinished) {
-            return
-        }
-        if (mLoading) {
+        if (loadFinished || mLoading || listOf(
+                forumId,
+                forumName,
+                threadId,
+                objType
+            ).any { it.isNullOrEmpty() }
+        ) {
             return
         }
         mLoading = true
@@ -199,8 +208,8 @@ class PhotoViewActivity : BaseActivity(), OnChangeBottomBarVisibilityListener,
         } else if (isFrs && lastIndex > 0) {
             val index = photoViewBeans[position].index
             mCounter.text = getString(
-                R.string.tip_position, (index ?: position
-                + 1).toString(), amount
+                R.string.tip_position, ((index ?: (position
+                        + 1))).toString(), amount
             )
         } else {
             mCounter.text = getString(R.string.tip_position, (position + 1).toString(), amount)
@@ -260,8 +269,7 @@ class PhotoViewActivity : BaseActivity(), OnChangeBottomBarVisibilityListener,
             R.id.menu_save_image -> {
                 ImageUtil.download(
                     this,
-                    mAdapter.getBean(mViewPager.currentItem).originUrl,
-                    mAdapter.getBean(mViewPager.currentItem).isGif
+                    mAdapter.getBean(mViewPager.currentItem).originUrl
                 )
                 return true
             }
@@ -270,7 +278,6 @@ class PhotoViewActivity : BaseActivity(), OnChangeBottomBarVisibilityListener,
                 ImageUtil.download(
                     this,
                     mAdapter.getBean(mViewPager.currentItem).originUrl,
-                    mAdapter.getBean(mViewPager.currentItem).isGif,
                     true
                 ) { uri: Uri? ->
                     val intent = Intent(Intent.ACTION_SEND)

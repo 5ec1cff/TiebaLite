@@ -23,7 +23,7 @@ import com.huanchengfly.tieba.post.components.spans.MyUserSpan
 import com.huanchengfly.tieba.post.dpToPx
 import com.huanchengfly.tieba.post.isTablet
 import com.huanchengfly.tieba.post.models.PhotoViewBean
-import com.huanchengfly.tieba.post.ui.theme.utils.ThemeUtils
+import com.huanchengfly.tieba.post.ui.common.theme.utils.ThemeUtils
 import com.huanchengfly.tieba.post.utils.BilibiliUtil.replaceVideoNumberSpan
 import com.huanchengfly.tieba.post.widgets.MyImageView
 import com.huanchengfly.tieba.post.widgets.VideoPlayerStandard

@@ -38,6 +38,7 @@ import com.google.android.material.snackbar.Snackbar;
 import com.hjq.permissions.Permission;
 import com.huanchengfly.tieba.post.R;
 import com.huanchengfly.tieba.post.components.dialogs.PermissionDialog;
+import com.huanchengfly.tieba.post.interfaces.OnOverrideUrlLoadingListener;
 import com.huanchengfly.tieba.post.interfaces.OnReceivedTitleListener;
 import com.huanchengfly.tieba.post.interfaces.WebViewListener;
 import com.huanchengfly.tieba.post.models.PermissionBean;
@@ -265,7 +266,7 @@ public class WebViewFragment extends BaseFragment implements DownloadListener {
     private void injectJavaScript() {
         if (mWebView == null) return;
         mWebView.evaluateJavascript(clipboardGuardJs, null);
-        String nowTheme = ThemeUtil.getTheme(getAttachContext());
+        String nowTheme = ThemeUtil.getTheme();
         String url = mWebView.getUrl();
         if (url == null || nowTheme == null) {
             return;
@@ -359,12 +360,26 @@ public class WebViewFragment extends BaseFragment implements DownloadListener {
 
         @Override
         public boolean shouldOverrideUrlLoading(WebView view, WebResourceRequest request) {
-            return navigationHelper.interceptWebViewRequest(view, request);
+            boolean result = false;
+            if (getAttachContext() instanceof OnOverrideUrlLoadingListener) {
+                result = ((OnOverrideUrlLoadingListener) getAttachContext()).shouldOverrideUrlLoading(view, request.getUrl().toString());
+            }
+            if (!result) {
+                result = navigationHelper.interceptWebViewRequest(view, request);
+            }
+            return result;
         }
 
         @Override
         public boolean shouldOverrideUrlLoading(WebView view, String url) {
-            return navigationHelper.interceptWebViewRequest(view, url);
+            boolean result = false;
+            if (getAttachContext() instanceof OnOverrideUrlLoadingListener) {
+                result = ((OnOverrideUrlLoadingListener) getAttachContext()).shouldOverrideUrlLoading(view, url);
+            }
+            if (!result) {
+                result = navigationHelper.interceptWebViewRequest(view, url);
+            }
+            return result;
         }
     }
 

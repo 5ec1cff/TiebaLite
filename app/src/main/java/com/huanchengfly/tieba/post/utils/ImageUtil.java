@@ -89,6 +89,7 @@ public class ImageUtil {
     public static final String TAG = "ImageUtil";
 
     private static boolean isGifFile(File file) {
+        if (file == null) return false;
         try {
             return isGifFile(new FileInputStream(file));
         } catch (FileNotFoundException e) {
@@ -99,6 +100,7 @@ public class ImageUtil {
 
     //判断是否为GIF文件
     private static boolean isGifFile(InputStream inputStream) {
+        if (inputStream == null) return false;
         byte[] bytes = new byte[4];
         try {
             inputStream.read(bytes);
@@ -240,14 +242,42 @@ public class ImageUtil {
     }
 
     @SuppressLint("StaticFieldLeak")
-    public static void download(Context context, String url, boolean gif) {
-        download(context, url, gif, false, null);
+    public static void download(Context context, String url) {
+        download(context, url, false, null);
+    }
+
+    private static void downloadForShare(Context context, String url, @NonNull ShareTaskCallback taskCallback) {
+        new DownloadAsyncTask(context, url, file -> {
+            File pictureFolder = new File(context.getCacheDir(), ".shareTemp");
+            if (pictureFolder.exists() || pictureFolder.mkdirs()) {
+                String fileName = "share_" + System.currentTimeMillis();
+                File destFile = new File(pictureFolder, fileName);
+                if (!destFile.exists()) {
+                    copyFile(file, destFile);
+                }
+                Uri shareUri;
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
+                    shareUri = FileProvider.getUriForFile(
+                            context,
+                            context.getPackageName() + ".share.FileProvider",
+                            destFile
+                    );
+                } else {
+                    shareUri = Uri.fromFile(destFile);
+                }
+                taskCallback.onGetUri(shareUri);
+            }
+        }).execute();
     }
 
     @SuppressLint("StaticFieldLeak")
-    public static void download(Context context, String url, boolean gif, boolean forShare, @Nullable ShareTaskCallback taskCallback) {
+    public static void download(Context context, String url, boolean forShare, @Nullable ShareTaskCallback taskCallback) {
+        if (forShare) {
+            if (taskCallback != null) downloadForShare(context, url, taskCallback);
+            return;
+        }
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-            downloadAboveQ(context, url, forShare, taskCallback);
+            downloadAboveQ(context, url);
             return;
         }
         PermissionUtils.INSTANCE.askPermission(
@@ -258,12 +288,12 @@ public class ImageUtil {
                 ),
                 R.string.toast_no_permission_save_photo,
                 () -> {
-                    downloadBelowQ(context, url, forShare, taskCallback);
+                    downloadBelowQ(context, url);
                     return null;
                 });
     }
 
-    private static void downloadAboveQ(Context context, String url, boolean forShare, @Nullable ShareTaskCallback taskCallback) {
+    private static void downloadAboveQ(Context context, String url) {
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.Q) {
             return;
         }
@@ -276,9 +306,6 @@ public class ImageUtil {
             }
             Log.i(TAG, "download: fileName = " + fileName);
             String relativePath = Environment.DIRECTORY_PICTURES + File.separator + FILE_FOLDER;
-            if (forShare) {
-                relativePath += File.separator + "shareTemp";
-            }
             ContentValues values = new ContentValues();
             values.put(MediaStore.Images.Media.RELATIVE_PATH, relativePath);
             values.put(MediaStore.Images.Media.DISPLAY_NAME, fileName);
@@ -302,37 +329,16 @@ public class ImageUtil {
                 }
                 return;
             }
-            if (!forShare)
-                Toast.makeText(context, context.getString(R.string.toast_photo_saved, relativePath), Toast.LENGTH_SHORT).show();
-            else if (taskCallback != null)
-                taskCallback.onGetUri(uri);
+            Toast.makeText(context, context.getString(R.string.toast_photo_saved, relativePath), Toast.LENGTH_SHORT).show();
         }).execute();
     }
 
-    private static void downloadAboveQ(Context context, String url) {
-        downloadAboveQ(context, url, false, null);
-    }
-
-    private static void downloadBelowQ(Context context, String url, boolean forShare, @Nullable ShareTaskCallback taskCallback) {
+    private static void downloadBelowQ(Context context, String url) {
         new DownloadAsyncTask(context, url, file -> {
             File pictureFolder = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_PICTURES).getAbsoluteFile();
             File appDir;
-            if (forShare) {
-                appDir = new File(pictureFolder, FILE_FOLDER + File.separator + "shareTemp");
-            } else {
-                appDir = new File(pictureFolder, FILE_FOLDER);
-            }
+            appDir = new File(pictureFolder, FILE_FOLDER);
             if (appDir.exists() || appDir.mkdirs()) {
-                if (forShare) {
-                    File nomedia = new File(appDir, ".nomedia");
-                    if (!nomedia.exists()) {
-                        try {
-                            nomedia.createNewFile();
-                        } catch (IOException e) {
-                            e.printStackTrace();
-                        }
-                    }
-                }
                 String fileName = URLUtil.guessFileName(url, null, MimeType.JPEG.toString());
                 if (isGifFile(file)) {
                     fileName = changeFileExtension(fileName, ".gif");
@@ -343,12 +349,8 @@ public class ImageUtil {
                 }
                 copyFile(file, destFile);
                 checkGifFile(destFile);
-                if (!forShare) {
-                    context.sendBroadcast(new Intent(Intent.ACTION_MEDIA_SCANNER_SCAN_FILE, Uri.fromFile(new File(destFile.getPath()))));
-                    Toast.makeText(context, context.getString(R.string.toast_photo_saved, destFile.getPath()), Toast.LENGTH_SHORT).show();
-                } else if (taskCallback != null) {
-                    taskCallback.onGetUri(FileProvider.getUriForFile(context, context.getPackageName() + ".share.FileProvider", destFile));
-                }
+                context.sendBroadcast(new Intent(Intent.ACTION_MEDIA_SCANNER_SCAN_FILE, Uri.fromFile(new File(destFile.getPath()))));
+                Toast.makeText(context, context.getString(R.string.toast_photo_saved, destFile.getPath()), Toast.LENGTH_SHORT).show();
             }
         }).execute();
     }
@@ -362,11 +364,6 @@ public class ImageUtil {
                 file.renameTo(gifFile);
             }
         }
-    }
-
-    @SuppressLint("StaticFieldLeak")
-    private static void downloadBelowQ(Context context, String url) {
-        downloadBelowQ(context, url, false, null);
     }
 
     public static String getPicId(String picUrl) {
@@ -392,7 +389,7 @@ public class ImageUtil {
             popupMenu.setOnMenuItemClickListener(item -> {
                 switch (item.getItemId()) {
                     case R.id.menu_save_image:
-                        download(view.getContext(), photoViewBeans.get(position).getOriginUrl(), false);
+                        download(view.getContext(), photoViewBeans.get(position).getOriginUrl());
                         return true;
                 }
                 return false;
@@ -420,7 +417,7 @@ public class ImageUtil {
             popupMenu.setOnMenuItemClickListener(item -> {
                 switch (item.getItemId()) {
                     case R.id.menu_save_image:
-                        download(view.getContext(), photoViewBeans.get(position).getOriginUrl(), false);
+                        download(view.getContext(), photoViewBeans.get(position).getOriginUrl());
                         return true;
                 }
                 return false;
@@ -450,7 +447,7 @@ public class ImageUtil {
     }
 
     public static int getRadiusDp(Context context) {
-        return SharedPreferencesUtil.get(context, SharedPreferencesUtil.SP_SETTINGS).getInt("radius", 8);
+        return AppPreferencesUtilsKt.getAppPreferences(context).getRadius();
     }
 
     public static void load(ImageView imageView, @LoadType int type, String url) {
@@ -469,11 +466,18 @@ public class ImageUtil {
         return drawable;
     }
 
-    public static void load(ImageView imageView, @LoadType int type, String url, boolean skipNetworkCheck) {
+    @SuppressLint("CheckResult")
+    public static void load(
+            ImageView imageView,
+            @LoadType int type,
+            String url,
+            boolean skipNetworkCheck,
+            boolean noTransition
+    ) {
         if (!Util.canLoadGlide(imageView.getContext())) {
             return;
         }
-        int radius = SharedPreferencesUtil.get(imageView.getContext(), SharedPreferencesUtil.SP_SETTINGS).getInt("radius", 8);
+        int radius = getRadiusDp(imageView.getContext());
         RequestBuilder<Drawable> requestBuilder;
         if (skipNetworkCheck ||
                 type == LOAD_TYPE_AVATAR ||
@@ -514,8 +518,19 @@ public class ImageUtil {
                         .skipMemoryCache(true));
                 break;
         }
-        requestBuilder.transition(DrawableTransitionOptions.withCrossFade())
-                .into(imageView);
+        if (!noTransition) {
+            requestBuilder.transition(DrawableTransitionOptions.withCrossFade());
+        }
+        requestBuilder.into(imageView);
+    }
+
+    public static void load(
+            ImageView imageView,
+            @LoadType int type,
+            String url,
+            boolean skipNetworkCheck
+    ) {
+        load(imageView, type, url, skipNetworkCheck, false);
     }
 
     /**
@@ -550,7 +565,7 @@ public class ImageUtil {
 
     @ImageLoadSettings
     private static int getImageLoadSettings() {
-        return Integer.parseInt(SharedPreferencesUtil.get(BaseApplication.getInstance(), SharedPreferencesUtil.SP_SETTINGS).getString("image_load_type", String.valueOf(SETTINGS_SMART_ORIGIN)));
+        return Integer.parseInt(AppPreferencesUtilsKt.getAppPreferences(BaseApplication.getINSTANCE()).getImageLoadType());
     }
 
     public static String imageToBase64(InputStream is) {

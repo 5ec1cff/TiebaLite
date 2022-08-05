@@ -3,17 +3,15 @@ package com.huanchengfly.tieba.post.api.interfaces.impls
 import android.os.Build
 import android.text.TextUtils
 import com.huanchengfly.tieba.post.BaseApplication
-import com.huanchengfly.tieba.post.api.ForumSortType
-import com.huanchengfly.tieba.post.api.SearchThreadFilter
-import com.huanchengfly.tieba.post.api.SearchThreadOrder
+import com.huanchengfly.tieba.post.api.*
 import com.huanchengfly.tieba.post.api.interfaces.ITiebaApi
 import com.huanchengfly.tieba.post.api.models.*
 import com.huanchengfly.tieba.post.api.models.web.ForumBean
 import com.huanchengfly.tieba.post.api.models.web.ForumHome
 import com.huanchengfly.tieba.post.api.models.web.HotMessageListBean
-import com.huanchengfly.tieba.post.api.models.web.Profile
 import com.huanchengfly.tieba.post.api.retrofit.ApiResult
 import com.huanchengfly.tieba.post.api.retrofit.RetrofitTiebaApi
+import com.huanchengfly.tieba.post.api.retrofit.body.MyMultipartBody
 import com.huanchengfly.tieba.post.models.DislikeBean
 import com.huanchengfly.tieba.post.models.MyInfoBean
 import com.huanchengfly.tieba.post.models.PhotoInfoBean
@@ -21,7 +19,10 @@ import com.huanchengfly.tieba.post.toJson
 import com.huanchengfly.tieba.post.utils.AccountUtil
 import com.huanchengfly.tieba.post.utils.ImageUtil
 import kotlinx.coroutines.Deferred
+import kotlinx.coroutines.flow.Flow
+import okhttp3.RequestBody.Companion.asRequestBody
 import retrofit2.Call
+import java.io.File
 import java.io.FileInputStream
 import java.io.IOException
 import java.net.URLEncoder
@@ -36,7 +37,7 @@ object MixedTiebaApiImpl : ITiebaApi {
     ): Deferred<ApiResult<PersonalizedBean>> =
         RetrofitTiebaApi.MINI_TIEBA_API.personalizedAsync(loadType, page)
 
-    override fun myProfileAsync(): Deferred<ApiResult<Profile>> =
+    override fun myProfileAsync(): Deferred<ApiResult<com.huanchengfly.tieba.post.api.models.web.Profile>> =
         RetrofitTiebaApi.WEB_TIEBA_API.myProfileAsync("json", "", "")
 
     override fun agree(
@@ -55,6 +56,9 @@ object MixedTiebaApiImpl : ITiebaApi {
 
     override fun forumRecommendAsync(): Deferred<ApiResult<ForumRecommend>> =
         RetrofitTiebaApi.MINI_TIEBA_API.forumRecommendAsync()
+
+    override fun forumRecommendFlow(): Flow<ForumRecommend> =
+        RetrofitTiebaApi.MINI_TIEBA_API.forumRecommendFlow()
 
     override fun forumPage(
         forumName: String, page: Int, sortType: ForumSortType, goodClassifyId: String?
@@ -92,7 +96,7 @@ object MixedTiebaApiImpl : ITiebaApi {
     override fun userLikeForum(
         uid: String, page: Int
     ): Call<UserLikeForumBean> {
-        val myUid = AccountUtil.getUid(BaseApplication.instance)
+        val myUid = AccountUtil.getUid(BaseApplication.INSTANCE)
         return RetrofitTiebaApi.MINI_TIEBA_API.userLikeForum(
             page = page,
             uid = myUid,
@@ -129,6 +133,9 @@ object MixedTiebaApiImpl : ITiebaApi {
 
     override fun profile(uid: String): Call<ProfileBean> =
         RetrofitTiebaApi.MINI_TIEBA_API.profile(uid)
+
+    override fun profileFlow(uid: String): Flow<Profile> =
+        RetrofitTiebaApi.OFFICIAL_TIEBA_API.profileFlow(uid)
 
     override fun unlikeForum(
         forumId: String, forumName: String, tbs: String
@@ -212,7 +219,7 @@ object MixedTiebaApiImpl : ITiebaApi {
         RetrofitTiebaApi.NEW_TIEBA_API.threadStore(
             pageSize,
             pageSize * page,
-            AccountUtil.getUid(BaseApplication.instance)
+            AccountUtil.getUid(BaseApplication.INSTANCE)
         )
 
     override fun removeStore(threadId: String, tbs: String): Call<CommonResponse> =
@@ -264,6 +271,34 @@ object MixedTiebaApiImpl : ITiebaApi {
         lz = if (seeLz) 1 else 0
     )
 
+    override fun threadContentAsync(
+        threadId: String,
+        page: Int,
+        seeLz: Boolean,
+        reverse: Boolean
+    ): Deferred<ApiResult<ThreadContentBean>> =
+        RetrofitTiebaApi.OFFICIAL_TIEBA_API.threadContentAsync(
+            threadId,
+            page,
+            last = if (reverse) "1" else null,
+            r = if (reverse) "1" else null,
+            lz = if (seeLz) 1 else 0
+        )
+
+    override fun threadContentAsync(
+        threadId: String,
+        postId: String?,
+        seeLz: Boolean,
+        reverse: Boolean
+    ): Deferred<ApiResult<ThreadContentBean>> =
+        RetrofitTiebaApi.OFFICIAL_TIEBA_API.threadContentAsync(
+            threadId,
+            postId,
+            last = if (reverse) "1" else null,
+            r = if (reverse) "1" else null,
+            lz = if (seeLz) 1 else 0
+        )
+
     override fun submitDislike(
         dislikeBean: DislikeBean,
         stoken: String
@@ -282,7 +317,8 @@ object MixedTiebaApiImpl : ITiebaApi {
     )
 
     override fun unfollow(
-        portrait: String, tbs: String
+        portrait: String,
+        tbs: String
     ): Call<CommonResponse> = RetrofitTiebaApi.WEB_TIEBA_API.follow(
         "https://tieba.baidu.com/i/?portrait=${
             URLEncoder.encode(
@@ -292,6 +328,16 @@ object MixedTiebaApiImpl : ITiebaApi {
         }&cuid=&auth=&uid=&ssid=&from=&uid=&pu=&bd_page_type=2&auth=&originid=&mo_device=1&tbs=${tbs}&action=follow&op=unfollow"
     )
 
+    override fun followFlow(
+        portrait: String,
+        tbs: String
+    ): Flow<FollowBean> = RetrofitTiebaApi.OFFICIAL_TIEBA_API.followFlow(portrait, tbs)
+
+    override fun unfollowFlow(
+        portrait: String,
+        tbs: String
+    ): Flow<CommonResponse> = RetrofitTiebaApi.OFFICIAL_TIEBA_API.unfollowFlow(portrait, tbs)
+
     override fun hotMessageList(): Call<HotMessageListBean> =
         RetrofitTiebaApi.WEB_TIEBA_API.hotMessageList()
 
@@ -300,6 +346,9 @@ object MixedTiebaApiImpl : ITiebaApi {
 
     override fun myInfoAsync(cookie: String): Deferred<ApiResult<MyInfoBean>> =
         RetrofitTiebaApi.WEB_TIEBA_API.myInfoAsync(cookie)
+
+    override fun myInfoFlow(cookie: String): Flow<MyInfoBean> =
+        RetrofitTiebaApi.WEB_TIEBA_API.myInfoFlow(cookie)
 
     override fun searchForum(keyword: String): Call<SearchForumBean> =
         RetrofitTiebaApi.WEB_TIEBA_API.searchForum(keyword)
@@ -320,7 +369,7 @@ object MixedTiebaApiImpl : ITiebaApi {
             base64 = ImageUtil.imageToBase64(photoInfoBean.file)
         } else {
             try {
-                BaseApplication.instance.contentResolver.openAssetFileDescriptor(
+                BaseApplication.INSTANCE.contentResolver.openAssetFileDescriptor(
                     photoInfoBean.fileUri,
                     "r"
                 )?.use { afd ->
@@ -529,6 +578,41 @@ object MixedTiebaApiImpl : ITiebaApi {
                 "pid" to postId
             )
         )
+
+    override fun initNickNameFlow(): Flow<InitNickNameBean> =
+        RetrofitTiebaApi.OFFICIAL_TIEBA_API.initNickNameFlow()
+
+    override fun initNickNameFlow(bduss: String, sToken: String): Flow<InitNickNameBean> =
+        RetrofitTiebaApi.OFFICIAL_TIEBA_API.initNickNameFlow(bduss, sToken)
+
+    override fun loginFlow(): Flow<LoginBean> =
+        RetrofitTiebaApi.OFFICIAL_TIEBA_API.loginFlow()
+
+    override fun loginFlow(bduss: String, sToken: String): Flow<LoginBean> =
+        RetrofitTiebaApi.OFFICIAL_TIEBA_API.loginFlow("$bduss|", sToken, null)
+
+    override fun profileModifyFlow(
+        birthdayShowStatus: Boolean,
+        birthdayTime: String,
+        intro: String,
+        sex: String
+    ): Flow<CommonResponse> =
+        RetrofitTiebaApi.OFFICIAL_TIEBA_API.profileModify(
+            birthdayShowStatus.booleanToString(),
+            birthdayTime,
+            intro,
+            sex
+        )
+
+    override fun imgPortrait(file: File): Flow<CommonResponse> {
+        return RetrofitTiebaApi.OFFICIAL_TIEBA_API.imgPortrait(
+            MyMultipartBody.Builder("--------7da3d81520810*").apply {
+                setType(MyMultipartBody.FORM)
+                addFormDataPart(Param.CLIENT_VERSION, "11.10.8.6")
+                addFormDataPart("pic", "file", file.asRequestBody())
+            }.build()
+        )
+    }
 
     override suspend fun threadContentSuspend(
         threadId: String, page: Int, seeLz: Boolean, reverse: Boolean

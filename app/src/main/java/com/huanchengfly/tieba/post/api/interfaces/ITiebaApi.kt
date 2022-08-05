@@ -7,13 +7,14 @@ import com.huanchengfly.tieba.post.api.models.*
 import com.huanchengfly.tieba.post.api.models.web.ForumBean
 import com.huanchengfly.tieba.post.api.models.web.ForumHome
 import com.huanchengfly.tieba.post.api.models.web.HotMessageListBean
-import com.huanchengfly.tieba.post.api.models.web.Profile
 import com.huanchengfly.tieba.post.api.retrofit.ApiResult
 import com.huanchengfly.tieba.post.models.DislikeBean
 import com.huanchengfly.tieba.post.models.MyInfoBean
 import com.huanchengfly.tieba.post.models.PhotoInfoBean
 import kotlinx.coroutines.Deferred
+import kotlinx.coroutines.flow.Flow
 import retrofit2.Call
+import java.io.File
 
 interface ITiebaApi {
     /**
@@ -77,6 +78,13 @@ interface ITiebaApi {
      * **需登录**
      */
     fun forumRecommendAsync(): Deferred<ApiResult<ForumRecommend>>
+
+    /**
+     * 关注吧列表
+     *
+     * **需登录**
+     */
+    fun forumRecommendFlow(): Flow<ForumRecommend>
 
     /**
      * 吧页面
@@ -191,9 +199,18 @@ interface ITiebaApi {
     ): Call<ProfileBean>
 
     /**
+     * 用户信息（Flow）
+     *
+     * @param uid 用户 ID
+     */
+    fun profileFlow(
+        uid: String
+    ): Flow<Profile>
+
+    /**
      * 用户信息（异步）
      */
-    fun myProfileAsync(): Deferred<ApiResult<Profile>>
+    fun myProfileAsync(): Deferred<ApiResult<com.huanchengfly.tieba.post.api.models.web.Profile>>
 
     /**
      * 取关一个吧
@@ -458,6 +475,36 @@ interface ITiebaApi {
     ): Call<ThreadContentBean>
 
     /**
+     * 贴页面
+     *
+     * @param threadId 贴 ID
+     * @param page 分页页码（从 1 开始）
+     * @param seeLz 是否只看楼主
+     * @param reverse 是否逆序
+     */
+    fun threadContentAsync(
+        threadId: String,
+        page: Int = 1,
+        seeLz: Boolean = false,
+        reverse: Boolean = false
+    ): Deferred<ApiResult<ThreadContentBean>>
+
+    /**
+     * 贴页面
+     *
+     * @param threadId 贴 ID
+     * @param postId 回复 ID
+     * @param seeLz 是否只看楼主
+     * @param reverse 是否逆序
+     */
+    fun threadContentAsync(
+        threadId: String,
+        postId: String?,
+        seeLz: Boolean = false,
+        reverse: Boolean = false
+    ): Deferred<ApiResult<ThreadContentBean>>
+
+    /**
      * 推荐“不感兴趣”
      *
      * **需登录**
@@ -496,6 +543,32 @@ interface ITiebaApi {
         tbs: String
     ): Call<CommonResponse>
 
+    /**
+     * 关注用户（客户端接口）
+     *
+     * **需登录**
+     *
+     * @param portrait 头像
+     * @param tbs tbs
+     */
+    fun followFlow(
+        portrait: String,
+        tbs: String
+    ): Flow<FollowBean>
+
+    /**
+     * 取关用户（客户端接口）
+     *
+     * **需登录**
+     *
+     * @param portrait 头像
+     * @param tbs tbs
+     */
+    fun unfollowFlow(
+        portrait: String,
+        tbs: String
+    ): Flow<CommonResponse>
+
     fun hotMessageList(): Call<HotMessageListBean>
 
     /**
@@ -515,6 +588,15 @@ interface ITiebaApi {
     fun myInfoAsync(
         cookie: String
     ): Deferred<ApiResult<MyInfoBean>>
+
+    /**
+     * 登录用户信息
+     *
+     * @param cookie 登录 Cookie 信息
+     */
+    fun myInfoFlow(
+        cookie: String
+    ): Flow<MyInfoBean>
 
     /**
      * 搜索吧
@@ -774,6 +856,57 @@ interface ITiebaApi {
     fun checkReportPost(
         postId: String
     ): Call<CheckReportBean>
+
+    /**
+     * 获得当前用户昵称（需登录）
+     */
+    fun initNickNameFlow(): Flow<InitNickNameBean>
+
+    /**
+     * 获得用户昵称
+     */
+    fun initNickNameFlow(
+        bduss: String,
+        sToken: String
+    ): Flow<InitNickNameBean>
+
+    /**
+     * 更新登录信息（需登录）
+     */
+    fun loginFlow(): Flow<LoginBean>
+
+    /**
+     * 登录
+     */
+    fun loginFlow(
+        bduss: String,
+        sToken: String
+    ): Flow<LoginBean>
+
+    /**
+     * 修改个人资料
+     *
+     * @param birthdayShowStatus 是否仅显示星座
+     * @param birthdayTime 生日时间戳 / 1000
+     * @param intro 个人简介（最多 500 字）
+     * @param sex 性别（1 = 男，2 = 女）
+     */
+    fun profileModifyFlow(
+        birthdayShowStatus: Boolean,
+        birthdayTime: String,
+        intro: String,
+        sex: String
+    ): Flow<CommonResponse>
+
+    /**
+     * 上传头像
+     *
+     * @param file 图片 File 对象
+     *
+     */
+    fun imgPortrait(
+        file: File
+    ): Flow<CommonResponse>
 
     /**
      * 贴页面

@@ -28,6 +28,10 @@ import com.huanchengfly.tieba.post.components.spans.RoundBackgroundColorSpan
 import com.huanchengfly.tieba.post.dpToPxFloat
 import com.huanchengfly.tieba.post.fragments.ConfirmDialogFragment
 import com.huanchengfly.tieba.post.fragments.FloorFragment.Companion.newInstance
+import com.huanchengfly.tieba.post.fragments.MenuDialogFragment
+import com.huanchengfly.tieba.post.models.ReplyInfoBean
+import com.huanchengfly.tieba.post.plugins.PluginManager
+import com.huanchengfly.tieba.post.ui.common.theme.utils.ThemeUtils
 import com.huanchengfly.tieba.post.ui.theme.utils.ThemeUtils
 import com.huanchengfly.tieba.post.utils.*
 import com.huanchengfly.tieba.post.utils.BilibiliUtil.replaceVideoNumberSpan
@@ -319,7 +323,7 @@ class ThreadReplyAdapter(context: Context) :
         var username: CharSequence =
             if (userInfoBean == null) item.authorId ?: "" else StringUtil.getUsernameString(
                 context,
-                userInfoBean.name,
+                userInfoBean.name ?: "",
                 userInfoBean.nameShow
             )
         if (userInfoBean != null && userInfoBean.isBawu == "1") {

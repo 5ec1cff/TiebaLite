@@ -4,9 +4,9 @@ import android.os.Build
 import com.huanchengfly.tieba.post.BaseApplication
 import com.huanchengfly.tieba.post.api.Header
 import com.huanchengfly.tieba.post.api.Param
-import com.huanchengfly.tieba.post.api.interceptors.SortAndSignInterceptor
 import com.huanchengfly.tieba.post.api.models.OAID
 import com.huanchengfly.tieba.post.api.retrofit.adapter.DeferredCallAdapterFactory
+import com.huanchengfly.tieba.post.api.retrofit.adapter.FlowCallAdapterFactory
 import com.huanchengfly.tieba.post.api.retrofit.converter.gson.GsonConverterFactory
 import com.huanchengfly.tieba.post.api.retrofit.interceptors.*
 import com.huanchengfly.tieba.post.api.retrofit.interfaces.MiniTiebaApi
@@ -32,13 +32,13 @@ object RetrofitTiebaApi {
     private val connectionPool = ConnectionPool()
 
     private val defaultCommonParamInterceptor = CommonParamInterceptor(
-        Param.BDUSS to { AccountUtil.getBduss(BaseApplication.instance) },
+        Param.BDUSS to { AccountUtil.getBduss(BaseApplication.INSTANCE) },
         Param.CLIENT_ID to { clientId },
         Param.CLIENT_TYPE to { "2" },
         Param.OS_VERSION to { Build.VERSION.SDK_INT.toString() },
         Param.MODEL to { Build.MODEL },
         Param.NET_TYPE to { "1" },
-        Param.PHONE_IMEI to { MobileInfoUtil.getIMEI(BaseApplication.instance) },
+        Param.PHONE_IMEI to { MobileInfoUtil.getIMEI(BaseApplication.INSTANCE) },
         Param.TIMESTAMP to { System.currentTimeMillis().toString() }
     )
 
@@ -124,7 +124,8 @@ object RetrofitTiebaApi {
         vararg interceptors: Interceptor
     ) = Retrofit.Builder()
         .baseUrl(baseUrl)
-        .addCallAdapterFactory(DeferredCallAdapterFactory.invoke())
+        .addCallAdapterFactory(DeferredCallAdapterFactory())
+        .addCallAdapterFactory(FlowCallAdapterFactory.create())
         .addConverterFactory(NullOnEmptyConverterFactory())
         .addConverterFactory(gsonConverterFactory)
         .addConverterFactory(ProtoConverterFactory.create())
@@ -132,6 +133,7 @@ object RetrofitTiebaApi {
             interceptors.forEach {
                 addInterceptor(it)
             }
+            addInterceptor(DropInterceptor)
             addInterceptor(sortAndSignInterceptor)
             addInterceptor(FailureResponseInterceptor)
             addInterceptor(ForceLoginInterceptor)

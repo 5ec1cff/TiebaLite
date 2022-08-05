@@ -43,7 +43,7 @@ import com.google.android.material.button.MaterialButton
 import com.google.android.material.floatingactionbutton.FloatingActionButton
 import com.google.android.material.snackbar.Snackbar
 import com.google.android.material.tabs.TabLayout
-import com.huanchengfly.tieba.post.R
+import com.huanchengfly.tieba.post.*
 import com.huanchengfly.tieba.post.adapters.FragmentTabViewPagerAdapter
 import com.huanchengfly.tieba.post.adapters.SingleChooseAdapter
 import com.huanchengfly.tieba.post.api.ForumSortType
@@ -53,22 +53,20 @@ import com.huanchengfly.tieba.post.api.models.ForumPageBean
 import com.huanchengfly.tieba.post.api.models.LikeForumResultBean
 import com.huanchengfly.tieba.post.api.retrofit.doIfFailure
 import com.huanchengfly.tieba.post.api.retrofit.doIfSuccess
-import com.huanchengfly.tieba.post.dpToPxFloat
 import com.huanchengfly.tieba.post.fragments.ForumFragment
 import com.huanchengfly.tieba.post.fragments.ForumFragment.OnRefreshedListener
-import com.huanchengfly.tieba.post.goToActivity
 import com.huanchengfly.tieba.post.interfaces.Refreshable
 import com.huanchengfly.tieba.post.interfaces.ScrollTopable
 import com.huanchengfly.tieba.post.models.PhotoViewBean
 import com.huanchengfly.tieba.post.models.database.History
-import com.huanchengfly.tieba.post.toastShort
-import com.huanchengfly.tieba.post.ui.animation.addMaskAnimation
-import com.huanchengfly.tieba.post.ui.animation.addZoomAnimation
-import com.huanchengfly.tieba.post.ui.animation.buildPressAnimator
-import com.huanchengfly.tieba.post.ui.theme.utils.ThemeUtils
+import com.huanchengfly.tieba.post.ui.common.animation.addMaskAnimation
+import com.huanchengfly.tieba.post.ui.common.animation.addZoomAnimation
+import com.huanchengfly.tieba.post.ui.common.animation.buildPressAnimator
+import com.huanchengfly.tieba.post.ui.common.theme.utils.ThemeUtils
 import com.huanchengfly.tieba.post.utils.*
 import com.huanchengfly.tieba.post.utils.ColorUtils.getDarkerColor
 import com.huanchengfly.tieba.post.utils.ColorUtils.greifyColor
+import com.huanchengfly.tieba.post.utils.StringUtil.getShortNumString
 import com.huanchengfly.tieba.post.utils.anim.animSet
 import com.huanchengfly.tieba.post.utils.preload.PreloadUtil
 import com.huanchengfly.tieba.post.widgets.MyViewPager
@@ -210,8 +208,7 @@ class ForumActivity : BaseActivity(), View.OnClickListener, OnRefreshedListener,
     private fun getSortType(): ForumSortType {
         val defaultSortType = appPreferences.defaultSortType!!.toInt()
         return ForumSortType.valueOf(
-            SharedPreferencesUtil.get(this, SharedPreferencesUtil.SP_SETTINGS)
-                .getInt(forumName + "_sort_type", defaultSortType)
+            dataStore.getInt(forumName + "_sort_type", defaultSortType)
         )
     }
 
@@ -223,10 +220,7 @@ class ForumActivity : BaseActivity(), View.OnClickListener, OnRefreshedListener,
             }
         }
         refresh()
-        SharedPreferencesUtil.get(this, SharedPreferencesUtil.SP_SETTINGS)
-            .edit()
-            .putInt(forumName + "_sort_type", sortType.value)
-            .apply()
+        dataStore.putInt(forumName + "_sort_type", sortType.value)
     }
 
     private fun refresh() {
@@ -625,21 +619,6 @@ class ForumActivity : BaseActivity(), View.OnClickListener, OnRefreshedListener,
         }
     }
 
-    private fun getNumStr(num: String): String {
-        val long = num.toLong()
-        if (long > 9999) {
-            val longW = long * 10 / 10000L / 10F
-            if (longW > 999) {
-                val longKW = longW.toLong() / 1000L
-                return "${longKW}KW"
-            } else {
-                return "${longW}W"
-            }
-        } else {
-            return num
-        }
-    }
-
     private fun refreshHeaderView() {
         if (mDataBean != null && mDataBean!!.forum != null) {
             headerView.visibility = View.VISIBLE
@@ -695,9 +674,9 @@ class ForumActivity : BaseActivity(), View.OnClickListener, OnRefreshedListener,
                 it.typeface = Typeface.createFromAsset(assets, "bebas.ttf")
             }
             //statTitleTextView.typeface = Typeface.createFromAsset(assets, "TiebaStatFont.ttf")
-            statMembersTextView.text = getNumStr(mDataBean!!.forum!!.memberNum!!)
-            statPostsTextView.text = getNumStr(mDataBean!!.forum!!.postNum!!)
-            statThreadsTextView.text = getNumStr(mDataBean!!.forum!!.threadNum!!)
+            statMembersTextView.text = mDataBean!!.forum!!.memberNum!!.getShortNumString()
+            statPostsTextView.text = mDataBean!!.forum!!.postNum!!.getShortNumString()
+            statThreadsTextView.text = mDataBean!!.forum!!.threadNum!!.getShortNumString()
             if (mDataBean!!.forum!!.slogan.isNullOrEmpty()) {
                 (headerSloganTextView.parent as View).visibility = View.GONE
             } else {

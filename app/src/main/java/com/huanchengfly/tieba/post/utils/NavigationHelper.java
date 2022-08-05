@@ -27,7 +27,7 @@ import com.huanchengfly.tieba.post.activities.UserActivity;
 import com.huanchengfly.tieba.post.activities.WebViewActivity;
 import com.huanchengfly.tieba.post.components.dialogs.PermissionDialog;
 import com.huanchengfly.tieba.post.models.PermissionBean;
-import com.huanchengfly.tieba.post.ui.theme.utils.ThemeUtils;
+import com.huanchengfly.tieba.post.ui.common.theme.utils.ThemeUtils;
 
 import java.net.URISyntaxException;
 import java.util.List;
@@ -238,11 +238,13 @@ public final class NavigationHelper {
             if (!path.contains("android_asset")) {
                 if (!(activityName.startsWith("WebViewActivity") || activityName.startsWith("LoginActivity"))) {
                     boolean isTiebaLink = host.contains("tieba.baidu.com") || host.contains("wappass.baidu.com") || host.contains("ufosdk.baidu.com") || host.contains("m.help.baidu.com");
-                    if (isTiebaLink || SharedPreferencesUtil.get(mContext, SharedPreferencesUtil.SP_SETTINGS).getBoolean("use_webview", true)) {
+                    if (isTiebaLink ||
+                            AppPreferencesUtilsKt.getAppPreferences(mContext).getUseWebView()
+                    ) {
                         startActivity(new Intent(mContext, WebViewActivity.class).putExtra("url", url));
                         return true;
                     } else {
-                        if (SharedPreferencesUtil.get(mContext, SharedPreferencesUtil.SP_SETTINGS).getBoolean("use_custom_tabs", true)) {
+                        if (AppPreferencesUtilsKt.getAppPreferences(mContext).getUseCustomTabs()) {
                             CustomTabsIntent.Builder intentBuilder = new CustomTabsIntent.Builder()
                                     .setShowTitle(true)
                                     .setToolbarColor(ThemeUtils.getColorByAttr(mContext, R.attr.colorToolbar));

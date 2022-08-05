@@ -28,13 +28,15 @@ import androidx.appcompat.app.AppCompatDelegate
 import com.github.gzuliyujiang.oaid.DeviceID
 import com.github.gzuliyujiang.oaid.DeviceIdentifier
 import com.github.gzuliyujiang.oaid.IGetter
+import com.github.piasy.biv.BigImageViewer
+import com.github.piasy.biv.loader.glide.GlideImageLoader
 import com.huanchengfly.tieba.post.activities.BaseActivity
 import com.huanchengfly.tieba.post.api.interfaces.CommonCallback
 import com.huanchengfly.tieba.post.components.dialogs.LoadingDialog
 import com.huanchengfly.tieba.post.plugins.PluginManager
 import com.huanchengfly.tieba.post.plugins.interfaces.IApp
-import com.huanchengfly.tieba.post.ui.theme.interfaces.ThemeSwitcher
-import com.huanchengfly.tieba.post.ui.theme.utils.ThemeUtils
+import com.huanchengfly.tieba.post.ui.common.theme.interfaces.ThemeSwitcher
+import com.huanchengfly.tieba.post.ui.common.theme.utils.ThemeUtils
 import com.huanchengfly.tieba.post.utils.*
 import com.huanchengfly.tieba.post.utils.QuickPreviewUtil.PreviewInfo
 import com.huanchengfly.tieba.post.utils.QuickPreviewUtil.getForumName
@@ -45,12 +47,14 @@ import com.microsoft.appcenter.AppCenter
 import com.microsoft.appcenter.analytics.Analytics
 import com.microsoft.appcenter.crashes.Crashes
 import com.microsoft.appcenter.distribute.*
+import dagger.hilt.android.HiltAndroidApp
 import org.intellij.lang.annotations.RegExp
 import org.litepal.LitePal
 import java.util.*
 import java.util.regex.Pattern
 
 
+@HiltAndroidApp
 class BaseApplication : Application(), IApp {
     private val mActivityList: MutableList<Activity> = mutableListOf()
 
@@ -75,8 +79,9 @@ class BaseApplication : Application(), IApp {
     }
 
     override fun onCreate() {
-        instance = this
+        INSTANCE = this
         super.onCreate()
+        BigImageViewer.initialize(GlideImageLoader.with(this))
         DeviceIdentifier.register(this)
         DeviceID.getOAID(this, object : IGetter {
             override fun onOAIDGetComplete(result: String) {
@@ -103,16 +108,25 @@ class BaseApplication : Application(), IApp {
         LitePal.initialize(this)
         /*registerActivityLifecycleCallbacks(object : ActivityLifecycleCallbacks {
             private var clipBoardHash: String? = null
+            private var lastTimestamp: Long = 0L
             private fun updateClipBoardHashCode() {
                 clipBoardHash = getClipBoardHash()
             }
 
-            private fun getClipBoardHash(): String? {
-                return "$clipBoard $clipBoardTimestamp"
+            private fun getClipBoardHash(): String {
+                return "$clipBoardTimestamp"
             }
 
             private val clipBoard: String?
-                get() = getClipBoardText()
+                get() {
+                    val timestamp = System.currentTimeMillis()
+                    return if (timestamp - lastTimestamp >= 10 * 1000L) {
+                        lastTimestamp = timestamp
+                        getClipBoardText()
+                    } else {
+                        null
+                    }
+                }
 
             private val clipBoardTimestamp: Long
                 get() = getClipBoardTimestamp()
@@ -171,8 +185,12 @@ class BaseApplication : Application(), IApp {
             }
 
             private fun checkClipBoard(activity: Activity) {
+                if (clipBoardHash == getClipBoardHash()) {
+                    return
+                }
+                updateClipBoardHashCode()
                 val clipBoardText = clipBoard
-                if (clipBoardHash != getClipBoardHash() && clipBoardText != null) {
+                if (clipBoardText != null) {
                     @RegExp val regex =
                         "((http|https)://)(([a-zA-Z0-9._-]+\\.[a-zA-Z]{2,6})|([0-9]{1,3}\\.[0-9]{1,3}\\.[0-9]{1,3}\\.[0-9]{1,3}))(:[0-9]{1,4})*(/[a-zA-Z0-9&%_./-~-]*)?"
                     val pattern = Pattern.compile(regex)
@@ -234,7 +252,6 @@ class BaseApplication : Application(), IApp {
                         }
                     }
                 }
-                updateClipBoardHashCode()
             }
 
             override fun onActivityPaused(activity: Activity) {}
@@ -252,6 +269,7 @@ class BaseApplication : Application(), IApp {
 
     //禁止app字体大小跟随系统字体大小调节
     override fun getResources(): Resources {
+        INSTANCE = this
         val fontScale = appPreferences.fontScale
         val resources = super.getResources()
         if (resources.configuration.fontScale != fontScale) {
@@ -347,10 +365,10 @@ class BaseApplication : Application(), IApp {
         var translucentBackground: Drawable? = null
 
         private val packageName: String
-            get() = instance.packageName
+            get() = INSTANCE.packageName
 
         @JvmStatic
-        lateinit var instance: BaseApplication
+        lateinit var INSTANCE: BaseApplication
             private set
 
         @JvmStatic
@@ -364,7 +382,7 @@ class BaseApplication : Application(), IApp {
                 .getBoolean("first", true)
 
         private val nightMode: Int
-            get() = instance.resources.configuration.uiMode and Configuration.UI_MODE_NIGHT_MASK
+            get() = INSTANCE.resources.configuration.uiMode and Configuration.UI_MODE_NIGHT_MASK
     }
 
     object ThemeDelegate : ThemeSwitcher {

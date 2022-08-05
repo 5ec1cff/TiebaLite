@@ -117,7 +117,7 @@ class ReplyActivity : BaseActivity(), View.OnClickListener,
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        if (ThemeUtil.THEME_TRANSLUCENT == ThemeUtil.getTheme(this)) {
+        if (ThemeUtil.THEME_TRANSLUCENT == ThemeUtil.getTheme()) {
             val constraintLayout = findViewById<TintConstraintLayout>(R.id.activity_reply_layout)
             constraintLayout.setBackgroundTintResId(0)
             ThemeUtil.setTranslucentBackground(constraintLayout)
@@ -461,7 +461,7 @@ class ReplyActivity : BaseActivity(), View.OnClickListener,
             SubPanelAndTrigger(emotionView, emotionBtn),
             SubPanelAndTrigger(insertImageView, insertImageBtn)
         )
-        EmotionUtil.GlobalOnItemClickManagerUtil.getInstance(this).attachToEditText(editText)
+        EmotionUtil.GlobalOnItemClickManagerUtil.getInstance().attachToEditText(editText)
     }
 
     override fun onCreateOptionsMenu(menu: Menu): Boolean {

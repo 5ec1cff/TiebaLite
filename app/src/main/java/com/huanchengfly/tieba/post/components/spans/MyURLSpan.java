@@ -8,6 +8,7 @@ import android.view.View;
 import androidx.annotation.NonNull;
 
 import com.huanchengfly.tieba.post.R;
+import com.huanchengfly.tieba.post.ui.common.theme.utils.ThemeUtils;
 import com.huanchengfly.tieba.post.ui.theme.utils.ThemeUtils;
 import com.huanchengfly.tieba.post.utils.NavigationHelper;
 import com.huanchengfly.tieba.post.utils.UtilsKt;

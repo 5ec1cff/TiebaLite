@@ -4,7 +4,6 @@ import android.animation.ObjectAnimator
 import android.animation.ValueAnimator
 import android.app.Activity
 import android.app.Dialog
-import android.content.Context
 import android.content.res.ColorStateList
 import android.content.res.Configuration
 import android.content.res.Resources
@@ -29,12 +28,17 @@ import butterknife.ButterKnife
 import cn.jzvd.Jzvd
 import com.gyf.immersionbar.ImmersionBar
 import com.huanchengfly.tieba.post.BaseApplication
-import com.huanchengfly.tieba.post.BaseApplication.Companion.instance
+import com.huanchengfly.tieba.post.BaseApplication.Companion.INSTANCE
 import com.huanchengfly.tieba.post.R
-import com.huanchengfly.tieba.post.ui.slideback.SlideBack
-import com.huanchengfly.tieba.post.ui.theme.interfaces.ExtraRefreshable
-import com.huanchengfly.tieba.post.ui.theme.utils.ThemeUtils
-import com.huanchengfly.tieba.post.utils.*
+import com.huanchengfly.tieba.post.activities.MainActivity.Companion.SP_SHOULD_SHOW_SNACKBAR
+import com.huanchengfly.tieba.post.dataStore
+import com.huanchengfly.tieba.post.putBoolean
+import com.huanchengfly.tieba.post.ui.common.theme.interfaces.ExtraRefreshable
+import com.huanchengfly.tieba.post.ui.common.theme.utils.ThemeUtils
+import com.huanchengfly.tieba.post.utils.AppPreferencesUtils
+import com.huanchengfly.tieba.post.utils.HandleBackUtil
+import com.huanchengfly.tieba.post.utils.ThemeUtil
+import com.huanchengfly.tieba.post.utils.calcStatusBarColorInt
 import com.huanchengfly.tieba.post.widgets.VoicePlayerView
 import com.huanchengfly.tieba.post.widgets.theme.TintToolbar
 import kotlinx.coroutines.*
@@ -46,7 +50,7 @@ abstract class BaseActivity : AppCompatActivity(), ExtraRefreshable, CoroutineSc
         get() = Dispatchers.Main + job
 
     private var mTintToolbar: TintToolbar? = null
-    private var oldTheme: String? = null
+    private var oldTheme: String = ""
 
     var isActivityRunning = true
         private set
@@ -100,13 +104,11 @@ abstract class BaseActivity : AppCompatActivity(), ExtraRefreshable, CoroutineSc
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        SlideBack.create()
-            .attachToActivity(this)
         fixBackground()
         getDeviceDensity()
-        instance.addActivity(this)
+        INSTANCE.addActivity(this)
         ThemeUtil.setTheme(this)
-        oldTheme = ThemeUtil.getTheme(this)
+        oldTheme = ThemeUtil.getTheme()
         if (isNeedImmersionBar) {
             refreshStatusBarColor()
         }
@@ -128,8 +130,8 @@ abstract class BaseActivity : AppCompatActivity(), ExtraRefreshable, CoroutineSc
     }
 
     fun refreshUIIfNeed() {
-        if (TextUtils.equals(oldTheme, ThemeUtil.getTheme(this)) &&
-            ThemeUtil.THEME_CUSTOM != ThemeUtil.getTheme(this) &&
+        if (TextUtils.equals(oldTheme, ThemeUtil.getTheme()) &&
+            ThemeUtil.THEME_CUSTOM != ThemeUtil.getTheme() &&
             !ThemeUtil.isTranslucentTheme(this)
         ) {
             return
@@ -145,18 +147,10 @@ abstract class BaseActivity : AppCompatActivity(), ExtraRefreshable, CoroutineSc
         isActivityRunning = true
         if (appPreferences.followSystemNight) {
             if (BaseApplication.isSystemNight && !ThemeUtil.isNightMode(this)) {
-                SharedPreferencesUtil.put(
-                    ThemeUtil.getSharedPreferences(this),
-                    MainActivity.SP_SHOULD_SHOW_SNACKBAR,
-                    true
-                )
+                dataStore.putBoolean(SP_SHOULD_SHOW_SNACKBAR, true)
                 ThemeUtil.switchToNightMode(this, false)
             } else if (!BaseApplication.isSystemNight && ThemeUtil.isNightMode(this)) {
-                SharedPreferencesUtil.put(
-                    ThemeUtil.getSharedPreferences(this),
-                    MainActivity.SP_SHOULD_SHOW_SNACKBAR,
-                    true
-                )
+                dataStore.putBoolean(SP_SHOULD_SHOW_SNACKBAR, true)
                 ThemeUtil.switchFromNightMode(this, false)
             }
         }
@@ -165,12 +159,12 @@ abstract class BaseActivity : AppCompatActivity(), ExtraRefreshable, CoroutineSc
 
     override fun onDestroy() {
         super.onDestroy()
-        instance.removeActivity(this)
+        INSTANCE.removeActivity(this)
         job.cancel()
     }
 
     fun exitApplication() {
-        instance.removeAllActivity()
+        INSTANCE.removeAllActivity()
     }
 
     override fun onOptionsItemSelected(item: MenuItem): Boolean {
@@ -219,7 +213,7 @@ abstract class BaseActivity : AppCompatActivity(), ExtraRefreshable, CoroutineSc
     open fun setTitle(newTitle: String?) {}
     open fun setSubTitle(newTitle: String?) {}
 
-    protected fun getDeviceDensity() {
+    private fun getDeviceDensity() {
         val metrics = DisplayMetrics()
         windowManager.defaultDisplay.getMetrics(metrics)
         val width = metrics.widthPixels
@@ -268,7 +262,7 @@ abstract class BaseActivity : AppCompatActivity(), ExtraRefreshable, CoroutineSc
                     autoStatusBarDarkModeEnable(true)
                 } else {
                     statusBarColorInt(
-                        calcStatusBarColor(
+                        calcStatusBarColorInt(
                             this@BaseActivity,
                             ThemeUtils.getColorByAttr(this@BaseActivity, R.attr.colorToolbar)
                         )
@@ -298,7 +292,7 @@ abstract class BaseActivity : AppCompatActivity(), ExtraRefreshable, CoroutineSc
         if (isNeedImmersionBar) {
             refreshStatusBarColor()
         }
-        oldTheme = ThemeUtil.getTheme(this)
+        oldTheme = ThemeUtil.getTheme()
     }
 
     private fun recreateIfNeed(): Boolean {
@@ -308,10 +302,9 @@ abstract class BaseActivity : AppCompatActivity(), ExtraRefreshable, CoroutineSc
             recreate()
             return true
         }
-        if (oldTheme?.contains(ThemeUtil.THEME_TRANSLUCENT) == true && !ThemeUtil.isTranslucentTheme(
-                this
-            ) ||
-            ThemeUtil.isTranslucentTheme(this) && oldTheme?.contains(ThemeUtil.THEME_TRANSLUCENT) == false
+        if (oldTheme.contains(ThemeUtil.THEME_TRANSLUCENT) &&
+            !ThemeUtil.isTranslucentTheme(this) || ThemeUtil.isTranslucentTheme(this) &&
+            !oldTheme.contains(ThemeUtil.THEME_TRANSLUCENT)
         ) {
             recreate()
             return true
@@ -347,26 +340,5 @@ abstract class BaseActivity : AppCompatActivity(), ExtraRefreshable, CoroutineSc
         block: suspend CoroutineScope.() -> Unit
     ): Job {
         return launch(Dispatchers.IO + job, start, block)
-    }
-
-    companion object {
-        fun calcStatusBarColor(context: Context, @ColorInt originColor: Int): Int {
-            var darkerStatusBar = true
-            if (ThemeUtil.THEME_CUSTOM == ThemeUtil.getTheme(context) && !SharedPreferencesUtil.get(
-                    context,
-                    SharedPreferencesUtil.SP_SETTINGS
-                )
-                    .getBoolean(ThemeUtil.SP_CUSTOM_TOOLBAR_PRIMARY_COLOR, true)
-            ) {
-                darkerStatusBar = false
-            } else if (ThemeUtil.getTheme(context) == ThemeUtil.THEME_WHITE) {
-                darkerStatusBar = false
-            } else if (!SharedPreferencesUtil.get(context, SharedPreferencesUtil.SP_SETTINGS)
-                    .getBoolean("status_bar_darker", true)
-            ) {
-                darkerStatusBar = false
-            }
-            return if (darkerStatusBar) ColorUtils.getDarkerColor(originColor) else originColor
-        }
     }
 }

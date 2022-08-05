@@ -83,11 +83,12 @@ class SearchForumFragment : BaseFragment(), ISearchFragment,
         recyclerView.layoutManager = layoutManager
         recyclerView.adapter = delegateAdapter
         refreshLayout!!.setOnRefreshListener { refresh() }
-        ThemeUtil.setThemeForSmartRefreshLayout(refreshLayout)
+        ThemeUtil.setThemeForSmartRefreshLayout(refreshLayout!!)
     }
 
     private fun refresh() {
-        if (keyword == null) {
+        if (keyword.isNullOrBlank()) {
+            refreshLayout?.finishRefresh()
             return
         }
         getInstance().searchForum(keyword!!).enqueue(object : Callback<SearchForumBean> {

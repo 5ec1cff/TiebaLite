@@ -17,14 +17,13 @@ import androidx.viewpager.widget.ViewPager
 import butterknife.BindView
 import butterknife.OnClick
 import com.google.android.material.appbar.AppBarLayout
-import com.google.android.material.appbar.AppBarLayout.OnOffsetChangedListener
 import com.google.android.material.appbar.CollapsingToolbarLayout
 import com.google.android.material.tabs.TabLayout
 import com.huanchengfly.tieba.post.R
 import com.huanchengfly.tieba.post.adapters.FragmentTabViewPagerAdapter
-import com.huanchengfly.tieba.post.api.TiebaApi.getInstance
-import com.huanchengfly.tieba.post.api.models.CommonResponse
+import com.huanchengfly.tieba.post.api.TiebaApi
 import com.huanchengfly.tieba.post.api.models.ProfileBean
+import com.huanchengfly.tieba.post.api.retrofit.exception.getErrorMessage
 import com.huanchengfly.tieba.post.fragments.UserLikeForumFragment
 import com.huanchengfly.tieba.post.fragments.UserPostFragment
 import com.huanchengfly.tieba.post.goToActivity
@@ -32,8 +31,16 @@ import com.huanchengfly.tieba.post.models.PhotoViewBean
 import com.huanchengfly.tieba.post.models.database.Block
 import com.huanchengfly.tieba.post.plugins.PluginManager
 import com.huanchengfly.tieba.post.utils.*
+import com.huanchengfly.tieba.post.toastShort
+import com.huanchengfly.tieba.post.ui.editprofile.view.EditProfileActivity
+import com.huanchengfly.tieba.post.utils.*
 import com.huanchengfly.tieba.post.widgets.theme.TintMaterialButton
 import com.huanchengfly.tieba.post.widgets.theme.TintToolbar
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.MainScope
+import kotlinx.coroutines.flow.catch
+import kotlinx.coroutines.flow.flowOn
+import kotlinx.coroutines.launch
 import retrofit2.Call
 import retrofit2.Callback
 import retrofit2.Response
@@ -62,11 +69,11 @@ class UserActivity : BaseActivity() {
     @BindView(R.id.user_center_stat_fans)
     lateinit var fansStatTv: TextView
 
-    @BindView(R.id.user_center_stat_age)
-    lateinit var ageStatTv: TextView
-
     @BindView(R.id.user_sex)
     lateinit var sexTv: TextView
+
+    @BindView(R.id.user_tb_age)
+    lateinit var tbAgeTv: TextView
 
     @BindView(R.id.user_center_action_btn)
     lateinit var actionBtn: TintMaterialButton
@@ -82,6 +89,9 @@ class UserActivity : BaseActivity() {
 
     @BindView(R.id.user_center_header_mask)
     lateinit var headerMaskView: View
+
+    @BindView(R.id.user_info_chips)
+    lateinit var infoChips: View
 
     private var profileBean: ProfileBean? = null
     private var uid: String? = null
@@ -114,10 +124,10 @@ class UserActivity : BaseActivity() {
         actionBtn.visibility = View.GONE
         if (!TextUtils.isEmpty(avatar)) {
             loadingView.visibility = View.GONE
-            ImageUtil.load(avatarView, ImageUtil.LOAD_TYPE_ALWAYS_ROUND, avatar)
-            ImageUtil.initImageView(avatarView, PhotoViewBean(avatar))
+            ImageUtil.load(avatarView, ImageUtil.LOAD_TYPE_AVATAR, StringUtil.getAvatarUrl(avatar))
+            ImageUtil.initImageView(avatarView, PhotoViewBean(StringUtil.getAvatarUrl(avatar)))
         }
-        appbar.addOnOffsetChangedListener(OnOffsetChangedListener { appBarLayout: AppBarLayout, verticalOffset: Int ->
+        appbar.addOnOffsetChangedListener { appBarLayout: AppBarLayout, verticalOffset: Int ->
             val percent = abs(verticalOffset * 1.0f) / appBarLayout.totalScrollRange
             headerView.alpha = 1f - percent
             headerMaskView.alpha = percent
@@ -128,42 +138,46 @@ class UserActivity : BaseActivity() {
                 if (toolbar.title != null)
                     toolbar.title = null
             }
-        })
+        }
         viewPager.adapter = adapter
         viewPager.offscreenPageLimit = 3
         tabLayout.setupWithViewPager(viewPager)
         setSupportActionBar(toolbar)
         val actionBar = supportActionBar
         actionBar?.setDisplayHomeAsUpEnabled(true)
-        getInstance().profile(uid!!).enqueue(object : Callback<ProfileBean?> {
-            override fun onResponse(call: Call<ProfileBean?>, response: Response<ProfileBean?>) {
-                val data = response.body()
-                actionBtn.visibility = View.VISIBLE
-                loadingView.visibility = View.GONE
-                profileBean = data
-                refreshHeader()
-                adapter.clear()
-                adapter.addFragment(
-                    UserPostFragment.newInstance(uid, true),
-                    "贴子 " + data!!.user!!.threadNum
-                )
-                adapter.addFragment(
-                    UserPostFragment.newInstance(uid, false),
-                    "回复 " + data.user!!.repostNum
-                )
-                adapter.addFragment(
-                    UserLikeForumFragment.newInstance(uid),
-                    "关注吧 " + data.user.myLikeNum
-                )
-                viewPager.setCurrentItem(tab, false)
-            }
+        TiebaApi.getInstance()
+            .profile(uid!!)
+            .enqueue(object : Callback<ProfileBean?> {
+                override fun onResponse(
+                    call: Call<ProfileBean?>,
+                    response: Response<ProfileBean?>
+                ) {
+                    val data = response.body()
+                    actionBtn.visibility = View.VISIBLE
+                    loadingView.visibility = View.GONE
+                    profileBean = data
+                    refreshHeader()
+                    adapter.clear()
+                    adapter.addFragment(
+                        UserPostFragment.newInstance(uid, true),
+                        "贴子 " + data!!.user!!.threadNum
+                    )
+                    adapter.addFragment(
+                        UserPostFragment.newInstance(uid, false),
+                        "回复 " + data.user!!.repostNum
+                    )
+                    adapter.addFragment(
+                        UserLikeForumFragment.newInstance(uid),
+                        "关注吧 " + data.user.myLikeNum
+                    )
+                    viewPager.setCurrentItem(tab, false)
+                }
 
-            override fun onFailure(call: Call<ProfileBean?>, t: Throwable) {}
-        })
+                override fun onFailure(call: Call<ProfileBean?>, t: Throwable) {}
+            })
         listOf(
             followStatTv,
-            fansStatTv,
-            ageStatTv
+            fansStatTv
         ).forEach {
             it.typeface = Typeface.createFromAsset(assets, "bebas.ttf")
         }
@@ -179,12 +193,12 @@ class UserActivity : BaseActivity() {
         if (avatarView.tag == null) {
             ImageUtil.load(
                 avatarView,
-                ImageUtil.LOAD_TYPE_ALWAYS_ROUND,
-                "http://tb.himg.baidu.com/sys/portrait/item/" + profileBean!!.user!!.portrait
+                ImageUtil.LOAD_TYPE_AVATAR,
+                StringUtil.getAvatarUrl(profileBean!!.user!!.portrait)
             )
             ImageUtil.initImageView(
                 avatarView,
-                PhotoViewBean("http://tb.himg.baidu.com/sys/portrait/item/" + profileBean!!.user!!.portrait)
+                PhotoViewBean(StringUtil.getAvatarUrl(profileBean!!.user!!.portrait))
             )
         }
         if (TextUtils.equals(AccountUtil.getUid(this), profileBean!!.user!!.id)) {
@@ -196,6 +210,8 @@ class UserActivity : BaseActivity() {
                 actionBtn.setText(R.string.button_follow)
             }
         }
+        tbAgeTv.text = getString(R.string.tb_age, profileBean!!.user!!.tbAge)
+        infoChips.visibility = View.VISIBLE
         sexTv.text = when (profileBean!!.user!!.sex) {
             "1" -> "♂"
             "2" -> "♀"
@@ -259,47 +275,45 @@ class UserActivity : BaseActivity() {
     @OnClick(R.id.user_center_action_btn)
     fun onActionBtnClick(view: View?) {
         if (TextUtils.equals(profileBean!!.user!!.id, AccountUtil.getUid(this))) {
-            startActivity(WebViewActivity.newIntent(this, getString(R.string.url_edit_info)))
+            goToActivity<EditProfileActivity>()
             return
         }
         if ("1" == profileBean!!.user!!.hasConcerned) {
-            getInstance().unfollow(
-                profileBean!!.user!!.portrait!!,
-                AccountUtil.getLoginInfo(this)!!.tbs
-            ).enqueue(object : Callback<CommonResponse?> {
-                override fun onResponse(
-                    call: Call<CommonResponse?>,
-                    response: Response<CommonResponse?>
-                ) {
-                    val data = response.body()
-                    Toast.makeText(this@UserActivity, data!!.errorMsg, Toast.LENGTH_SHORT).show()
-                    profileBean!!.user!!.setHasConcerned("0")
-                    refreshHeader()
-                }
-
-                override fun onFailure(call: Call<CommonResponse?>, t: Throwable) {
-                    Toast.makeText(this@UserActivity, t.message, Toast.LENGTH_SHORT).show()
-                }
-            })
+            MainScope().launch {
+                TiebaApi.getInstance()
+                    .unfollowFlow(
+                        profileBean!!.user!!.portrait!!,
+                        AccountUtil.getLoginInfo(this@UserActivity)!!.tbs
+                    )
+                    .flowOn(Dispatchers.IO)
+                    .catch { e ->
+                        toastShort(e.getErrorMessage())
+                    }
+                    .collect {
+                        //toastShort(R.string.toast_success)
+                        profileBean!!.user!!.setHasConcerned("0")
+                        refreshHeader()
+                    }
+            }
         } else {
-            getInstance().follow(
-                profileBean!!.user!!.portrait!!,
-                AccountUtil.getLoginInfo(this)!!.tbs
-            ).enqueue(object : Callback<CommonResponse?> {
-                override fun onResponse(
-                    call: Call<CommonResponse?>,
-                    response: Response<CommonResponse?>
-                ) {
-                    val data = response.body()
-                    Toast.makeText(this@UserActivity, data!!.errorMsg, Toast.LENGTH_SHORT).show()
-                    profileBean!!.user!!.setHasConcerned("1")
-                    refreshHeader()
-                }
-
-                override fun onFailure(call: Call<CommonResponse?>, t: Throwable) {
-                    Toast.makeText(this@UserActivity, t.message, Toast.LENGTH_SHORT).show()
-                }
-            })
+            MainScope().launch {
+                TiebaApi.getInstance()
+                    .followFlow(
+                        profileBean!!.user!!.portrait!!,
+                        AccountUtil.getLoginInfo(this@UserActivity)!!.tbs
+                    )
+                    .flowOn(Dispatchers.IO)
+                    .catch { e ->
+                        toastShort(e.getErrorMessage())
+                    }
+                    .collect {
+                        if ("1" == it.info.isToast) {
+                            toastShort(it.info.toastText)
+                        }
+                        profileBean!!.user!!.setHasConcerned("1")
+                        refreshHeader()
+                    }
+            }
         }
     }
 

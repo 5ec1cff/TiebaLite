@@ -20,6 +20,10 @@ import com.huanchengfly.tieba.post.activities.ForumActivity.Companion.launch
 import com.huanchengfly.tieba.post.api.models.ThreadContentBean
 import com.huanchengfly.tieba.post.components.MyViewHolder
 import com.huanchengfly.tieba.post.components.spans.RoundBackgroundColorSpan
+import com.huanchengfly.tieba.post.fragments.MenuDialogFragment
+import com.huanchengfly.tieba.post.models.ReplyInfoBean
+import com.huanchengfly.tieba.post.plugins.PluginManager
+import com.huanchengfly.tieba.post.ui.common.theme.utils.ThemeUtils
 import com.huanchengfly.tieba.post.ui.theme.utils.ThemeUtils
 import com.huanchengfly.tieba.post.utils.*
 import com.huanchengfly.tieba.post.widgets.MyLinearLayout
@@ -97,7 +101,8 @@ class ThreadMainPostAdapter(
             true
         }
         holder.setVisibility(R.id.thread_list_item_user_lz_tip, true)
-        var username: CharSequence = StringUtil.getUsernameString(context, user.name, user.nameShow)
+        var username: CharSequence =
+            StringUtil.getUsernameString(context, user.name ?: "", user.nameShow)
         if (user.isBawu == "1") {
             val bawuType = if (user.bawuType == "manager") "吧主" else "小吧主"
             username = SpannableStringBuilder(username).apply {
